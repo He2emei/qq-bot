@@ -1,0 +1,46 @@
+{
+  "properties": {
+    "Date": {
+      "type": "date",
+      "date": {
+        "start": ""
+      }
+    },
+    "Name": {
+      "type": "title",
+      "title": [
+        {
+          "type": "mention",
+          "mention": {
+            "type": "date",
+            "date": {
+              "start": ""
+            }
+          }
+        },
+        {
+          "type": "text",
+          "text": {
+            "content": ""
+          }
+        }
+      ]
+    },
+    "日记": {
+      "type": "checkbox",
+      "checkbox": false
+    },
+    "整理": {
+      "type": "checkbox",
+      "checkbox": false
+    },
+    "背单词": {
+      "type": "checkbox",
+      "checkbox": false
+    },
+    "努力指数": {
+      "type": "number",
+      "number": null
+    }
+  }
+}
