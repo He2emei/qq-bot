@@ -23,6 +23,7 @@ GROUP_IDS = {
     'jjl_test': 948937168,
     'jjl': 1042637919,
     'another_group': 107013467,
+    'mc_group': 612488213
 }
 
 # 监控所有已配置的群聊
