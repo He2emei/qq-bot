@@ -18,16 +18,17 @@ class DatabaseManager:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
 
-            # 创建机器表
+            # 创建机器表 - 移除name的UNIQUE约束，添加复合约束
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS machines (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL UNIQUE,
+                    name TEXT NOT NULL,
                     region TEXT,
                     dimension TEXT,
                     coordinates TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(name, region, coordinates)
                 )
             ''')
 
@@ -131,9 +132,9 @@ class DatabaseManager:
                                 cursor.execute('SELECT id FROM regions WHERE name = ?', (region_name,))
                                 region_id = cursor.fetchone()[0]
 
-                            # 插入机器
+                            # 插入机器 - 使用INSERT OR IGNORE来避免覆盖重复记录
                             cursor.execute('''
-                                INSERT OR REPLACE INTO machines (name, region, dimension, coordinates)
+                                INSERT OR IGNORE INTO machines (name, region, dimension, coordinates)
                                 VALUES (?, ?, ?, ?)
                             ''', (name, region_name, dimension, coordinates))
 
