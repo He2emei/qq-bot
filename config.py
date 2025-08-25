@@ -59,8 +59,10 @@ NOTION_DATABASES = {
     'weekly': 'b933933868254b769bf96e3768b1dbda',    # Weekly Dairy 2.0
     'terms': 'ec2a978cd73e43d49ddf41693e68fc15',     # Terms Dairy 2.0
     'machines': '248a62a2-edb3-80d8-9c58-f242e2ee1db5',   # 核心服机器数据库
-    'database1': '248a62a2-edb3-8027-9549-fc0663a5aa3b',  # 第二个数据库
-    'database2': '248a62a2-edb3-8079-9226-c2b3c3f1e63e'   # 第三个数据库
+    'products': '248a62a2-edb3-8027-9549-fc0663a5aa3b',   # 产物数据库
+    'regions': '248a62a2-edb3-8079-9226-c2b3c3f1e63e',    # 地域数据库
+    'database1': '248a62a2-edb3-8027-9549-fc0663a5aa3b',  # 第二个数据库 (产物)
+    'database2': '248a62a2-edb3-8079-9226-c2b3c3f1e63e'   # 第三个数据库 (地域)
 }
 
 # Notion 代理配置 (如果需要)

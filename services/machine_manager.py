@@ -28,15 +28,78 @@ class MachineManager:
             List[Dict[str, Any]]: 匹配的机器列表
         """
         try:
-            # 查询机器数据库
+            # 首先在产物数据库中查找对应的产物页面
+            product_page = self._find_product_by_name(product)
+            if not product_page:
+                print(f"未找到产物: {product}")
+                return []
+
+            # 通过relation查询与该产物关联的机器
+            return self._search_machines_by_relation("产物", product_page['id'])
+
+        except Exception as e:
+            print(f"查询机器失败: {e}")
+            return []
+
+    def _find_product_by_name(self, product_name: str) -> Optional[Dict[str, Any]]:
+        """
+        根据产物名称查找产物页面
+
+        Args:
+            product_name: 产物名称
+
+        Returns:
+            Optional[Dict[str, Any]]: 产物页面信息
+        """
+        try:
+            database_id = config.NOTION_DATABASES['products']
+            url = f"{self.notion_service.base_url}databases/{database_id}/query/"
+
+            payload = {
+                "filter": {
+                    "property": "Name",
+                    "title": {
+                        "equals": product_name
+                    }
+                }
+            }
+
+            response = self.notion_service.session.post(
+                url,
+                headers=self.notion_service.headers,
+                json=payload
+            )
+            response.raise_for_status()
+            result = response.json()
+
+            if result.get('results'):
+                return result['results'][0]
+            return None
+
+        except Exception as e:
+            print(f"查找产物失败: {e}")
+            return None
+
+    def _search_machines_by_relation(self, relation_property: str, related_page_id: str) -> List[Dict[str, Any]]:
+        """
+        通过relation属性搜索机器
+
+        Args:
+            relation_property: relation属性名称
+            related_page_id: 关联的页面ID
+
+        Returns:
+            List[Dict[str, Any]]: 匹配的机器列表
+        """
+        try:
             database_id = config.NOTION_DATABASES['machines']
             url = f"{self.notion_service.base_url}databases/{database_id}/query/"
 
             payload = {
                 "filter": {
-                    "property": "产物",
-                    "multi_select": {
-                        "contains": product
+                    "property": relation_property,
+                    "relation": {
+                        "contains": related_page_id
                     }
                 }
             }
@@ -58,8 +121,41 @@ class MachineManager:
             return machines
 
         except Exception as e:
-            print(f"查询机器失败: {e}")
+            print(f"通过relation查询机器失败: {e}")
             return []
+
+    def _get_page_name_by_id(self, page_id: str) -> Optional[str]:
+        """
+        根据页面ID获取页面名称
+
+        Args:
+            page_id: 页面ID
+
+        Returns:
+            Optional[str]: 页面名称
+        """
+        try:
+            url = f"{self.notion_service.base_url}pages/{page_id}"
+
+            response = self.notion_service.session.get(
+                url,
+                headers=self.notion_service.headers
+            )
+            response.raise_for_status()
+            page_data = response.json()
+
+            # 获取页面标题
+            properties = page_data.get('properties', {})
+            if properties.get('Name', {}).get('title'):
+                title_items = properties['Name']['title']
+                if title_items:
+                    return title_items[0].get('plain_text', '')
+
+            return None
+
+        except Exception as e:
+            print(f"获取页面名称失败: {e}")
+            return None
 
     def search_machines_by_region(self, region: str) -> List[Dict[str, Any]]:
         """
@@ -72,14 +168,38 @@ class MachineManager:
             List[Dict[str, Any]]: 匹配的机器列表
         """
         try:
-            database_id = config.NOTION_DATABASES['machines']
+            # 首先在地域数据库中查找对应的地域页面
+            region_page = self._find_region_by_name(region)
+            if not region_page:
+                print(f"未找到地域: {region}")
+                return []
+
+            # 通过relation查询与该地域关联的机器
+            return self._search_machines_by_relation("地域", region_page['id'])
+
+        except Exception as e:
+            print(f"查询地域机器失败: {e}")
+            return []
+
+    def _find_region_by_name(self, region_name: str) -> Optional[Dict[str, Any]]:
+        """
+        根据地域名称查找地域页面
+
+        Args:
+            region_name: 地域名称
+
+        Returns:
+            Optional[Dict[str, Any]]: 地域页面信息
+        """
+        try:
+            database_id = config.NOTION_DATABASES['regions']
             url = f"{self.notion_service.base_url}databases/{database_id}/query/"
 
             payload = {
                 "filter": {
-                    "property": "地域",
-                    "select": {
-                        "equals": region
+                    "property": "Name",
+                    "title": {
+                        "equals": region_name
                     }
                 }
             }
@@ -92,17 +212,13 @@ class MachineManager:
             response.raise_for_status()
             result = response.json()
 
-            machines = []
-            for page in result.get('results', []):
-                machine_info = self._parse_machine_page(page)
-                if machine_info:
-                    machines.append(machine_info)
-
-            return machines
+            if result.get('results'):
+                return result['results'][0]
+            return None
 
         except Exception as e:
-            print(f"查询地域机器失败: {e}")
-            return []
+            print(f"查找地域失败: {e}")
+            return None
 
     def get_machine_details(self, machine_name: str) -> Optional[Dict[str, Any]]:
         """
@@ -152,10 +268,10 @@ class MachineManager:
             List[str]: 地域名称列表
         """
         try:
-            database_id = config.NOTION_DATABASES['machines']
+            database_id = config.NOTION_DATABASES['regions']
             url = f"{self.notion_service.base_url}databases/{database_id}/query/"
 
-            # 获取所有页面
+            # 获取所有地域页面
             response = self.notion_service.session.post(
                 url,
                 headers=self.notion_service.headers,
@@ -164,16 +280,17 @@ class MachineManager:
             response.raise_for_status()
             result = response.json()
 
-            regions = set()
+            regions = []
             for page in result.get('results', []):
                 properties = page.get('properties', {})
-                region_property = properties.get('地域', {})
-                if region_property.get('select'):
-                    region_name = region_property['select'].get('name', '')
-                    if region_name:
-                        regions.add(region_name)
+                if properties.get('Name', {}).get('title'):
+                    title_items = properties['Name']['title']
+                    if title_items:
+                        region_name = title_items[0].get('plain_text', '')
+                        if region_name:
+                            regions.append(region_name)
 
-            return sorted(list(regions))
+            return sorted(regions)
 
         except Exception as e:
             print(f"获取地域列表失败: {e}")
@@ -187,7 +304,7 @@ class MachineManager:
             List[str]: 产物名称列表
         """
         try:
-            database_id = config.NOTION_DATABASES['machines']
+            database_id = config.NOTION_DATABASES['products']
             url = f"{self.notion_service.base_url}databases/{database_id}/query/"
 
             response = self.notion_service.session.post(
@@ -198,15 +315,17 @@ class MachineManager:
             response.raise_for_status()
             result = response.json()
 
-            products = set()
+            products = []
             for page in result.get('results', []):
                 properties = page.get('properties', {})
-                product_property = properties.get('产物', {})
-                if product_property.get('multi_select'):
-                    for item in product_property['multi_select']:
-                        products.add(item.get('name', ''))
+                if properties.get('Name', {}).get('title'):
+                    title_items = properties['Name']['title']
+                    if title_items:
+                        product_name = title_items[0].get('plain_text', '')
+                        if product_name:
+                            products.append(product_name)
 
-            return sorted(list(products))
+            return sorted(products)
 
         except Exception as e:
             print(f"获取产物列表失败: {e}")
@@ -227,21 +346,29 @@ class MachineManager:
 
             # 解析基本信息 - 使用实际的属性名称
             name = ""
-            if properties.get('����', {}).get('title'):  # 名称
-                title_items = properties['����']['title']
+            if properties.get('Name', {}).get('title'):  # 名称
+                title_items = properties['Name']['title']
                 if title_items:
                     name = title_items[0].get('plain_text', '')
 
-            # 解析地域
+            # 解析地域 - 处理relation属性
             region = ""
-            if properties.get('地域', {}).get('select'):
-                region = properties['地域']['select'].get('name', '')
+            if properties.get('地域', {}).get('relation'):
+                relations = properties['地域']['relation']
+                if relations:
+                    # 获取第一个关联的地域页面的名称
+                    region_page = self._get_page_name_by_id(relations[0]['id'])
+                    if region_page:
+                        region = region_page
 
-            # 解析产物
+            # 解析产物 - 处理relation属性
             products = []
-            if properties.get('产物', {}).get('multi_select'):
-                for item in properties['产物']['multi_select']:
-                    products.append(item.get('name', ''))
+            if properties.get('产物', {}).get('relation'):
+                relations = properties['产物']['relation']
+                for relation in relations:
+                    product_page = self._get_page_name_by_id(relation['id'])
+                    if product_page:
+                        products.append(product_page)
 
             # 解析可维护者
             maintainers = []
