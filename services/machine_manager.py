@@ -71,6 +71,7 @@ class MachineManager:
             )
             response.raise_for_status()
             result = response.json()
+            print(result)
 
             if result.get('results'):
                 return result['results'][0]
