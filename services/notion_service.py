@@ -33,6 +33,7 @@ class NotionService:
             "Authorization": f"Bearer {token}",
             "notion-version": config.NOTION_VERSION
         }
+        print(self.headers)
 
     def _make_request_with_retry(self, method: str, url: str, **kwargs) -> requests.Response:
         """带重试机制的请求方法"""

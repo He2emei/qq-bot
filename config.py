@@ -44,7 +44,7 @@ DATA_PATHS = {
 
 # Flask 服务配置
 SERVER_HOST = '0.0.0.0'
-SERVER_PORT = 7779
+SERVER_PORT = 7778
 
 # === Notion 配置 ===
 # Notion API 配置

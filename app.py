@@ -1,9 +1,12 @@
 # app.py
 from flask import Flask, request, jsonify
 import config
+from dotenv import load_dotenv
 
 # 导入所有处理器
 from handlers import aql_handler, game_handler, notion_handler, at_handler#, ai_handler, general_handler
+
+load_dotenv()
 
 # 启动 Notion 定时任务调度器
 try:
