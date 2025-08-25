@@ -202,8 +202,8 @@ class DatabaseManager:
                         'id': row[0],
                         'name': row[1],
                         'region': row[2] or '',
-                        'products': row[4].split(', ') if row[4] else [],
-                        'maintainers': row[5].split(', ') if row[5] else [],
+                        'products': row[5].split(', ') if row[5] else [],
+                        'maintainers': row[6].split(', ') if row[6] else [],
                         'dimension': row[3] or '',
                         'coordinates': row[4] or ''
                     }
@@ -243,8 +243,8 @@ class DatabaseManager:
                         'id': row[0],
                         'name': row[1],
                         'region': row[2] or '',
-                        'products': row[4].split(', ') if row[4] else [],
-                        'maintainers': row[5].split(', ') if row[5] else [],
+                        'products': row[5].split(', ') if row[5] else [],
+                        'maintainers': row[6].split(', ') if row[6] else [],
                         'dimension': row[3] or '',
                         'coordinates': row[4] or ''
                     }
@@ -283,8 +283,8 @@ class DatabaseManager:
                         'id': row[0],
                         'name': row[1],
                         'region': row[2] or '',
-                        'products': row[4].split(', ') if row[4] else [],
-                        'maintainers': row[5].split(', ') if row[5] else [],
+                        'products': row[5].split(', ') if row[5] else [],
+                        'maintainers': row[6].split(', ') if row[6] else [],
                         'dimension': row[3] or '',
                         'coordinates': row[4] or ''
                     }
