@@ -7,7 +7,7 @@ load_dotenv()
 import config
 
 # 导入所有处理器
-from handlers import aql_handler, game_handler, notion_handler, at_handler#, ai_handler, general_handler
+from handlers import aql_handler, game_handler, notion_handler, at_handler, faq_handler#, ai_handler, general_handler
 
 # 启动 Notion 定时任务调度器
 try:
@@ -55,6 +55,10 @@ COMMAND_ROUTER = {
     '#atadd': at_handler.handle_at_add,
     '#atls': at_handler.handle_at_list,
     '#atdel': at_handler.handle_at_delete,
+
+    # FAQ 相关命令
+    '#faq': faq_handler.handle_faq_command,
+    '#faq edit': faq_handler.handle_faq_command,
 
     # 帮助命令
     '#help': game_handler.handle_help_command,
