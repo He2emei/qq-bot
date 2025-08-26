@@ -74,10 +74,32 @@ def get_message_text(message_objects):
     return ''.join([m['data']['text'] for m in message_objects if m['type'] == 'text']).strip()
 
 
+def get_full_message_content(event_data):
+    """从事件数据中提取完整消息内容，包括文本和图片"""
+    message_objects = event_data.get('message', [])
+
+    content_parts = []
+
+    for msg_obj in message_objects:
+        if msg_obj['type'] == 'text':
+            # 添加文本内容
+            text = msg_obj['data']['text'].strip()
+            if text:
+                content_parts.append(text)
+        elif msg_obj['type'] == 'image':
+            # 添加图片URL
+            image_url = msg_obj['data'].get('url', '')
+            if image_url:
+                content_parts.append(f"[CQ:image,url={image_url}]")
+
+    return ''.join(content_parts).strip()
+
+
 @app.route('/', methods=['POST'])
 def receive_event():
     event_data = request.json
-    
+    print(event_data)
+
     # 基本的事件校验
     if not event_data or event_data.get('post_type') != 'message' or event_data.get('message_type') != 'group':
         return "Not a group message event", 200
@@ -89,7 +111,7 @@ def receive_event():
     message_text = get_message_text(event_data.get('message', []))
     if not message_text:
         return "Empty message", 200
-        
+
     print(f"Received from group {group_id}: {message_text}")
 
     # 调试信息：显示前缀匹配
@@ -97,9 +119,14 @@ def receive_event():
         if message_text.startswith(command):
             print(f"Command matched: '{command}' for message: '{message_text}'")
             break
-    
-    # 将消息文本注入回event_data，方便处理器使用
-    event_data['message'] = message_text
+
+    # 对于FAQ编辑命令，使用完整消息内容（包括图片）
+    if message_text.startswith('#faq edit'):
+        full_content = get_full_message_content(event_data)
+        event_data['message'] = full_content
+    else:
+        # 将消息文本注入回event_data，方便处理器使用
+        event_data['message'] = message_text
 
     # 根据命令前缀分发到对应的处理器
     for command, handler_func in COMMAND_ROUTER.items():

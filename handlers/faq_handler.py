@@ -2,6 +2,26 @@
 from services.database_manager import database_manager
 from utils.api_utils import send_group_message
 import config
+import re
+
+
+def convert_content_to_cq(content):
+    """将内容中的图片URL转换为CQ码格式（如果还没有转换的话）"""
+    # 检查是否已经是CQ码格式
+    if '[CQ:image' in content:
+        # 如果已经是CQ码格式，直接返回
+        return content
+
+    # 匹配常见的图片URL格式
+    image_url_pattern = r'https?://[^\s]+\.(?:jpg|jpeg|png|gif|bmp|webp)(?:\?[^\s]*)?'
+
+    def replace_image_url(match):
+        url = match.group(0)
+        return f'[CQ:image,url={url}]'
+
+    # 替换所有的图片URL为CQ码
+    converted_content = re.sub(image_url_pattern, replace_image_url, content, flags=re.IGNORECASE)
+    return converted_content
 
 
 def handle_faq_query(event_data):
@@ -26,8 +46,11 @@ def handle_faq_query(event_data):
             send_group_message(group_id, f"未找到FAQ条目: {key}")
             return
 
+        # 转换内容中的图片URL为CQ码格式
+        converted_content = convert_content_to_cq(content)
+
         # 发送内容
-        response = f"📖 FAQ [{key}]:\n\n{content}"
+        response = f"📖 FAQ [{key}]:\n\n{converted_content}"
         send_group_message(group_id, response)
 
     except Exception as e:
@@ -100,6 +123,7 @@ def handle_faq_command(event_data):
                 "#faq <key> - 查询指定key的FAQ内容\n\n"
                 "✏️ 编辑FAQ:\n"
                 "#faq edit <key> <contents> - 新增或覆盖指定key的FAQ内容\n\n"
-                "💡 提示: contents支持文本和图片URL"
+                "💡 提示: contents支持文本和图片URL\n"
+                "🖼️ 图片格式: https://example.com/image.jpg (会自动转换为CQ码)"
             )
             send_group_message(group_id, help_msg)

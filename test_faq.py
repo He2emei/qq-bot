@@ -37,6 +37,34 @@ def test_database_operations():
 
     print()
 
+def test_content_conversion():
+    """测试内容转换功能"""
+    print("=== 测试内容转换功能 ===")
+
+    from handlers.faq_handler import convert_content_to_cq
+
+    # 测试纯文本
+    text_content = "这是一段纯文本内容"
+    converted = convert_content_to_cq(text_content)
+    print(f"纯文本转换: {converted}")
+
+    # 测试带图片URL的文本
+    image_content = "这是带图片的内容: https://example.com/image.jpg 和 https://test.com/pic.png"
+    converted = convert_content_to_cq(image_content)
+    print(f"图片URL转换: {converted}")
+
+    # 测试已经是CQ码的内容
+    cq_content = "这是已经包含CQ码的内容: [CQ:image,url=https://example.com/image.jpg]"
+    converted = convert_content_to_cq(cq_content)
+    print(f"CQ码内容转换: {converted}")
+
+    # 测试混合内容
+    mixed_content = "规则说明:\n1. 第一条规则\n2. 第二条规则 https://example.com/rule.jpg\n3. 第三条规则"
+    converted = convert_content_to_cq(mixed_content)
+    print(f"混合内容转换: {converted}")
+
+    print()
+
 def test_handler_functions():
     """测试处理器函数"""
     print("=== 测试处理器函数 ===")
@@ -53,14 +81,32 @@ def test_handler_functions():
     event = create_mock_event('#faq nonexistent_key')
     handle_faq_query(event)
 
-    # 测试编辑FAQ
-    print("\n测试编辑FAQ:")
-    event = create_mock_event('#faq edit test_key_from_handler 这是通过处理器设置的内容')
+    # 测试编辑FAQ（包含图片URL）
+    print("\n测试编辑FAQ（包含图片URL）:")
+    event = create_mock_event('#faq edit test_key_with_image 这是一个包含图片的FAQ: https://example.com/faq-image.jpg')
     handle_faq_edit(event)
+
+    # 测试编辑FAQ（模拟真实图片消息）
+    print("\n测试编辑FAQ（模拟真实图片消息）:")
+    mock_event_with_image = {
+        'message': '#faq edit test_key_real_image 这是包含真实图片的消息:[CQ:image,url=https://multimedia.nt.qq.com.cn/download?appid=1407&fileid=test]',
+        'group_id': 123456
+    }
+    handle_faq_edit(mock_event_with_image)
 
     # 测试查询存在的key
     print("\n测试查询存在的key:")
     event = create_mock_event('#faq test_key_from_handler')
+    handle_faq_query(event)
+
+    # 测试查询带图片的key
+    print("\n测试查询带图片的key:")
+    event = create_mock_event('#faq test_key_with_image')
+    handle_faq_query(event)
+
+    # 测试查询真实图片的key
+    print("\n测试查询真实图片的key:")
+    event = create_mock_event('#faq test_key_real_image')
     handle_faq_query(event)
 
     # 测试主入口函数
@@ -75,6 +121,9 @@ if __name__ == "__main__":
 
     # 测试数据库操作
     test_database_operations()
+
+    # 测试内容转换功能
+    test_content_conversion()
 
     # 测试处理器函数
     test_handler_functions()
