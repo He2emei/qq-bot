@@ -104,38 +104,40 @@ class MachineManager:
         """
         添加新机器到数据库
 
-        注意：此方法暂未实现本地数据库版本，主要功能已迁移到本地数据库查询
-
         Args:
-            machine_data: 机器数据
+            machine_data: 机器数据字典，包含name, region, dimension, coordinates等字段
+                        可选字段：products（列表或字符串），maintainers（列表或字符串）
 
         Returns:
             bool: 是否添加成功
         """
-        print("添加机器功能暂未实现，请直接更新数据库文件")
-        return False
+        try:
+            machine_id = self.db_manager.add_machine(machine_data)
+            return machine_id is not None
+        except Exception as e:
+            print(f"添加机器失败: {e}")
+            return False
 
-    def update_machine(self, machine_id: str, update_data: Dict[str, Any]) -> bool:
+    def update_machine(self, machine_id: int, update_data: Dict[str, Any]) -> bool:
         """
         更新机器信息
 
-        注意：此方法暂未实现本地数据库版本，主要功能已迁移到本地数据库查询
-
         Args:
             machine_id: 机器ID
-            update_data: 要更新的数据
+            update_data: 要更新的数据字典
 
         Returns:
             bool: 是否更新成功
         """
-        print("更新机器功能暂未实现，请直接更新数据库文件")
-        return False
+        try:
+            return self.db_manager.update_machine(machine_id, update_data)
+        except Exception as e:
+            print(f"更新机器失败: {e}")
+            return False
 
-    def delete_machine(self, machine_id: str) -> bool:
+    def delete_machine(self, machine_id: int) -> bool:
         """
         删除机器
-
-        注意：此方法暂未实现本地数据库版本，主要功能已迁移到本地数据库查询
 
         Args:
             machine_id: 机器ID
@@ -143,8 +145,50 @@ class MachineManager:
         Returns:
             bool: 是否删除成功
         """
-        print("删除机器功能暂未实现，请直接更新数据库文件")
-        return False
+        try:
+            return self.db_manager.delete_machine(machine_id)
+        except Exception as e:
+            print(f"删除机器失败: {e}")
+            return False
+
+    def update_machine_by_name(self, machine_name: str, update_data: Dict[str, Any]) -> bool:
+        """
+        根据机器名称更新机器信息
+
+        Args:
+            machine_name: 机器名称
+            update_data: 要更新的数据字典
+
+        Returns:
+            bool: 是否更新成功
+        """
+        try:
+            machine_id = self.db_manager.get_machine_id_by_name(machine_name)
+            if machine_id:
+                return self.update_machine(machine_id, update_data)
+            return False
+        except Exception as e:
+            print(f"根据名称更新机器失败: {e}")
+            return False
+
+    def delete_machine_by_name(self, machine_name: str) -> bool:
+        """
+        根据机器名称删除机器
+
+        Args:
+            machine_name: 机器名称
+
+        Returns:
+            bool: 是否删除成功
+        """
+        try:
+            machine_id = self.db_manager.get_machine_id_by_name(machine_name)
+            if machine_id:
+                return self.delete_machine(machine_id)
+            return False
+        except Exception as e:
+            print(f"根据名称删除机器失败: {e}")
+            return False
 
 # 全局机器管理器实例
 machine_manager = MachineManager()

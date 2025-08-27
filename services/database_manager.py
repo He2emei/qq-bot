@@ -382,5 +382,162 @@ class DatabaseManager:
             print(f"获取FAQ列表失败: {e}")
             return []
 
+    def add_machine(self, machine_data: Dict[str, Any]) -> Optional[int]:
+        """添加新机器到数据库"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+
+                # 插入机器基本信息
+                cursor.execute('''
+                    INSERT INTO machines (name, region, dimension, coordinates)
+                    VALUES (?, ?, ?, ?)
+                ''', (
+                    machine_data['name'],
+                    machine_data.get('region'),
+                    machine_data.get('dimension'),
+                    machine_data.get('coordinates')
+                ))
+
+                machine_id = cursor.lastrowid
+
+                # 处理产物
+                if machine_data.get('products'):
+                    products = machine_data['products'] if isinstance(machine_data['products'], list) else [machine_data['products']]
+                    for product_name in products:
+                        if product_name.strip():
+                            # 插入或获取产物ID
+                            cursor.execute('INSERT OR IGNORE INTO products (name) VALUES (?)', (product_name.strip(),))
+                            cursor.execute('SELECT id FROM products WHERE name = ?', (product_name.strip(),))
+                            product_id = cursor.fetchone()[0]
+
+                            # 关联机器和产物
+                            cursor.execute('INSERT OR IGNORE INTO machine_products (machine_id, product_id) VALUES (?, ?)',
+                                         (machine_id, product_id))
+
+                # 处理维护者
+                if machine_data.get('maintainers'):
+                    maintainers = machine_data['maintainers'] if isinstance(machine_data['maintainers'], list) else [machine_data['maintainers']]
+                    for maintainer_name in maintainers:
+                        if maintainer_name.strip():
+                            # 插入或获取维护者ID
+                            cursor.execute('INSERT OR IGNORE INTO maintainers (name) VALUES (?)', (maintainer_name.strip(),))
+                            cursor.execute('SELECT id FROM maintainers WHERE name = ?', (maintainer_name.strip(),))
+                            maintainer_id = cursor.fetchone()[0]
+
+                            # 关联机器和维护者
+                            cursor.execute('INSERT OR IGNORE INTO machine_maintainers (machine_id, maintainer_id) VALUES (?, ?)',
+                                         (machine_id, maintainer_id))
+
+                # 处理地域
+                if machine_data.get('region'):
+                    cursor.execute('INSERT OR IGNORE INTO regions (name) VALUES (?)', (machine_data['region'],))
+
+                conn.commit()
+                return machine_id
+
+        except Exception as e:
+            print(f"添加机器失败: {e}")
+            return None
+
+    def update_machine(self, machine_id: int, update_data: Dict[str, Any]) -> bool:
+        """更新机器信息"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+
+                # 更新机器基本信息
+                if any(key in update_data for key in ['name', 'region', 'dimension', 'coordinates']):
+                    update_fields = []
+                    values = []
+
+                    if 'name' in update_data:
+                        update_fields.append('name = ?')
+                        values.append(update_data['name'])
+
+                    if 'region' in update_data:
+                        update_fields.append('region = ?')
+                        values.append(update_data['region'])
+                        # 确保地域存在
+                        cursor.execute('INSERT OR IGNORE INTO regions (name) VALUES (?)', (update_data['region'],))
+
+                    if 'dimension' in update_data:
+                        update_fields.append('dimension = ?')
+                        values.append(update_data['dimension'])
+
+                    if 'coordinates' in update_data:
+                        update_fields.append('coordinates = ?')
+                        values.append(update_data['coordinates'])
+
+                    update_fields.append('updated_at = CURRENT_TIMESTAMP')
+                    values.append(machine_id)
+
+                    query = f'UPDATE machines SET {", ".join(update_fields)} WHERE id = ?'
+                    cursor.execute(query, values)
+
+                # 更新产物
+                if 'products' in update_data:
+                    # 删除现有的产物关联
+                    cursor.execute('DELETE FROM machine_products WHERE machine_id = ?', (machine_id,))
+
+                    # 添加新的产物关联
+                    products = update_data['products'] if isinstance(update_data['products'], list) else [update_data['products']]
+                    for product_name in products:
+                        if product_name.strip():
+                            cursor.execute('INSERT OR IGNORE INTO products (name) VALUES (?)', (product_name.strip(),))
+                            cursor.execute('SELECT id FROM products WHERE name = ?', (product_name.strip(),))
+                            product_id = cursor.fetchone()[0]
+                            cursor.execute('INSERT OR IGNORE INTO machine_products (machine_id, product_id) VALUES (?, ?)',
+                                         (machine_id, product_id))
+
+                # 更新维护者
+                if 'maintainers' in update_data:
+                    # 删除现有的维护者关联
+                    cursor.execute('DELETE FROM machine_maintainers WHERE machine_id = ?', (machine_id,))
+
+                    # 添加新的维护者关联
+                    maintainers = update_data['maintainers'] if isinstance(update_data['maintainers'], list) else [update_data['maintainers']]
+                    for maintainer_name in maintainers:
+                        if maintainer_name.strip():
+                            cursor.execute('INSERT OR IGNORE INTO maintainers (name) VALUES (?)', (maintainer_name.strip(),))
+                            cursor.execute('SELECT id FROM maintainers WHERE name = ?', (maintainer_name.strip(),))
+                            maintainer_id = cursor.fetchone()[0]
+                            cursor.execute('INSERT OR IGNORE INTO machine_maintainers (machine_id, maintainer_id) VALUES (?, ?)',
+                                         (machine_id, maintainer_id))
+
+                conn.commit()
+                return cursor.rowcount > 0
+
+        except Exception as e:
+            print(f"更新机器失败: {e}")
+            return False
+
+    def delete_machine(self, machine_id: int) -> bool:
+        """删除机器"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+
+                # 删除机器（级联删除会自动删除关联表中的记录）
+                cursor.execute('DELETE FROM machines WHERE id = ?', (machine_id,))
+                conn.commit()
+                return cursor.rowcount > 0
+
+        except Exception as e:
+            print(f"删除机器失败: {e}")
+            return False
+
+    def get_machine_id_by_name(self, machine_name: str) -> Optional[int]:
+        """根据机器名称获取ID"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('SELECT id FROM machines WHERE name = ?', (machine_name,))
+                row = cursor.fetchone()
+                return row[0] if row else None
+        except Exception as e:
+            print(f"获取机器ID失败: {e}")
+            return None
+
 # 全局数据库管理器实例
 database_manager = DatabaseManager()

@@ -49,6 +49,10 @@ COMMAND_ROUTER = {
     '#machine_regions': notion_handler.handle_notion_command,
     '#machine_products': notion_handler.handle_notion_command,
     '#machine_detail': notion_handler.handle_notion_command,
+    '#machine_add': notion_handler.handle_notion_command,
+    '#machine_update': notion_handler.handle_notion_command,
+    '#machine_delete': notion_handler.handle_notion_command,
+    '#machine_help': notion_handler.handle_notion_command,
 
     # @ 相关命令
     '#at': at_handler.handle_at_command,

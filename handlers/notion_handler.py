@@ -282,6 +282,195 @@ def handle_machine_detail_command(event_data):
             send_group_message(group_id, error_msg)
 
 
+def handle_machine_add_command(event_data):
+    """处理 #machine_add 命令，添加新机器"""
+    try:
+        message_text = event_data.get('message', '')
+        group_id = event_data.get('group_id')
+
+        if not message_text.startswith('#machine_add '):
+            send_group_message(group_id, "格式错误，请使用: #machine_add <机器名|地域|维度|坐标|产物|维护者>")
+            return
+
+        params_text = message_text[13:].strip()
+        if not params_text:
+            send_group_message(group_id, "请提供机器信息，格式: 机器名|地域|维度|坐标|产物|维护者")
+            return
+
+        # 解析参数
+        parts = params_text.split('|')
+        if len(parts) < 4:
+            send_group_message(group_id, "参数不足，至少需要: 机器名|地域|维度|坐标")
+            return
+
+        machine_data = {
+            'name': parts[0].strip(),
+            'region': parts[1].strip() if len(parts) > 1 else '',
+            'dimension': parts[2].strip() if len(parts) > 2 else '',
+            'coordinates': parts[3].strip() if len(parts) > 3 else '',
+        }
+
+        # 处理产物
+        if len(parts) > 4 and parts[4].strip():
+            machine_data['products'] = [p.strip() for p in parts[4].split(',') if p.strip()]
+
+        # 处理维护者
+        if len(parts) > 5 and parts[5].strip():
+            machine_data['maintainers'] = [m.strip() for m in parts[5].split(',') if m.strip()]
+
+        # 添加机器
+        success = machine_manager.add_machine(machine_data)
+
+        if success:
+            response = f"✅ 机器 '{machine_data['name']}' 添加成功！\n\n"
+            response += f"🏭 地域: {machine_data['region']}\n"
+            response += f"🌍 位置: {machine_data['dimension']} {machine_data['coordinates']}\n"
+            if machine_data.get('products'):
+                response += f"📦 产物: {', '.join(machine_data['products'])}\n"
+            if machine_data.get('maintainers'):
+                response += f"👤 维护者: {', '.join(machine_data['maintainers'])}"
+            send_group_message(group_id, response)
+        else:
+            send_group_message(group_id, f"❌ 添加机器 '{machine_data['name']}' 失败")
+
+    except Exception as e:
+        error_msg = f"添加机器失败: {str(e)}"
+        print(error_msg)
+        group_id = event_data.get('group_id')
+        if group_id:
+            send_group_message(group_id, error_msg)
+
+
+def handle_machine_update_command(event_data):
+    """处理 #machine_update 命令，更新机器信息"""
+    try:
+        message_text = event_data.get('message', '')
+        group_id = event_data.get('group_id')
+
+        if not message_text.startswith('#machine_update '):
+            send_group_message(group_id, "格式错误，请使用: #machine_update <机器名|字段:值|字段:值...>")
+            return
+
+        params_text = message_text[16:].strip()
+        if not params_text:
+            send_group_message(group_id, "请提供机器名称和更新信息，格式: 机器名|字段:值|字段:值...")
+            return
+
+        # 解析参数
+        parts = params_text.split('|')
+        if len(parts) < 2:
+            send_group_message(group_id, "参数不足，请提供机器名和至少一个更新字段")
+            return
+
+        machine_name = parts[0].strip()
+        update_data = {}
+
+        for part in parts[1:]:
+            if ':' in part:
+                field, value = part.split(':', 1)
+                field = field.strip()
+                value = value.strip()
+
+                if field in ['products', 'maintainers']:
+                    update_data[field] = [item.strip() for item in value.split(',') if item.strip()]
+                else:
+                    update_data[field] = value
+
+        if not update_data:
+            send_group_message(group_id, "未找到有效的更新字段")
+            return
+
+        # 更新机器
+        success = machine_manager.update_machine_by_name(machine_name, update_data)
+
+        if success:
+            response = f"✅ 机器 '{machine_name}' 更新成功！\n\n"
+            for field, value in update_data.items():
+                if isinstance(value, list):
+                    response += f"{field}: {', '.join(value)}\n"
+                else:
+                    response += f"{field}: {value}\n"
+            send_group_message(group_id, response)
+        else:
+            send_group_message(group_id, f"❌ 更新机器 '{machine_name}' 失败，请检查机器名是否正确")
+
+    except Exception as e:
+        error_msg = f"更新机器失败: {str(e)}"
+        print(error_msg)
+        group_id = event_data.get('group_id')
+        if group_id:
+            send_group_message(group_id, error_msg)
+
+
+def handle_machine_delete_command(event_data):
+    """处理 #machine_delete 命令，删除机器"""
+    try:
+        message_text = event_data.get('message', '')
+        group_id = event_data.get('group_id')
+
+        if not message_text.startswith('#machine_delete '):
+            send_group_message(group_id, "格式错误，请使用: #machine_delete <机器名>")
+            return
+
+        machine_name = message_text[16:].strip()
+        if not machine_name:
+            send_group_message(group_id, "请指定要删除的机器名称")
+            return
+
+        # 确认机器存在
+        machine = machine_manager.get_machine_details(machine_name)
+        if not machine:
+            send_group_message(group_id, f"未找到机器: {machine_name}")
+            return
+
+        # 删除机器
+        success = machine_manager.delete_machine_by_name(machine_name)
+
+        if success:
+            send_group_message(group_id, f"✅ 机器 '{machine_name}' 已删除")
+        else:
+            send_group_message(group_id, f"❌ 删除机器 '{machine_name}' 失败")
+
+    except Exception as e:
+        error_msg = f"删除机器失败: {str(e)}"
+        print(error_msg)
+        group_id = event_data.get('group_id')
+        if group_id:
+            send_group_message(group_id, error_msg)
+
+
+def handle_machine_help_command(event_data):
+    """处理 #machine_help 命令，显示机器管理帮助"""
+    try:
+        group_id = event_data.get('group_id')
+        help_msg = (
+            "🏭 机器信息管理帮助:\n\n"
+            "📊 查询功能:\n"
+            "#machine_search <产物> - 根据产物查询机器\n"
+            "#machine_region <地域> - 根据地域查询机器\n"
+            "#machine_regions - 列出所有地域\n"
+            "#machine_products - 列出所有产物\n"
+            "#machine_detail <机器名> - 获取机器详细信息\n\n"
+            "✏️ 编辑功能:\n"
+            "#machine_add <机器名|地域|维度|坐标|产物|维护者> - 添加新机器\n"
+            "  例: #machine_add 测试机器|测试区|overworld|100,200|铁,铜|张三,李四\n\n"
+            "#machine_update <机器名|字段:值|字段:值...> - 更新机器信息\n"
+            "  可更新字段: name, region, dimension, coordinates, products, maintainers\n"
+            "  例: #machine_update 测试机器|region:新区|products:金,银\n\n"
+            "#machine_delete <机器名> - 删除机器\n"
+            "  例: #machine_delete 测试机器\n\n"
+            "#machine_help - 显示此帮助信息"
+        )
+        send_group_message(group_id, help_msg)
+
+    except Exception as e:
+        error_msg = f"显示帮助失败: {str(e)}"
+        print(error_msg)
+        group_id = event_data.get('group_id')
+        if group_id:
+            send_group_message(group_id, error_msg)
+
+
 def handle_notion_command(event_data):
     """处理所有 Notion 相关命令的主入口"""
     message_text = event_data.get('message', '')
@@ -302,6 +491,14 @@ def handle_notion_command(event_data):
         handle_machine_list_products_command(event_data)
     elif message_text.startswith('#machine_detail'):
         handle_machine_detail_command(event_data)
+    elif message_text.startswith('#machine_add'):
+        handle_machine_add_command(event_data)
+    elif message_text.startswith('#machine_update'):
+        handle_machine_update_command(event_data)
+    elif message_text.startswith('#machine_delete'):
+        handle_machine_delete_command(event_data)
+    elif message_text.startswith('#machine_help'):
+        handle_machine_help_command(event_data)
     else:
         # 未知命令
         group_id = event_data.get('group_id')
@@ -312,11 +509,15 @@ def handle_notion_command(event_data):
                 "#daily - 查看今日日记内容\n"
                 "#add_daily - 创建今日日记页面\n"
                 "#update_cover - 更新今日日记封面为Bing壁纸\n\n"
-                "🏭 机器查询:\n"
+                "🏭 机器管理:\n"
                 "#machine_search <产物> - 根据产物查询机器\n"
                 "#machine_region <地域> - 根据地域查询机器\n"
                 "#machine_regions - 列出所有地域\n"
                 "#machine_products - 列出所有产物\n"
-                "#machine_detail <机器名> - 获取机器详细信息"
+                "#machine_detail <机器名> - 获取机器详细信息\n"
+                "#machine_add <参数> - 添加新机器\n"
+                "#machine_update <参数> - 更新机器信息\n"
+                "#machine_delete <机器名> - 删除机器\n"
+                "#machine_help - 显示机器管理帮助"
             )
             send_group_message(group_id, help_msg)
