@@ -483,10 +483,10 @@ def handle_notion_command(event_data):
         handle_update_cover_command(event_data)
     elif message_text.startswith('#machine_search'):
         handle_machine_search_command(event_data)
-    elif message_text.startswith('#machine_region'):
-        handle_machine_region_command(event_data)
     elif message_text.startswith('#machine_regions'):
         handle_machine_list_regions_command(event_data)
+    elif message_text.startswith('#machine_region'):
+        handle_machine_region_command(event_data)
     elif message_text.startswith('#machine_products'):
         handle_machine_list_products_command(event_data)
     elif message_text.startswith('#machine_detail'):

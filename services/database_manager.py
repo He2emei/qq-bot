@@ -276,15 +276,16 @@ class DatabaseManager:
 
                 query = '''
                     SELECT m.id, m.name, m.region, m.dimension, m.coordinates,
-                           GROUP_CONCAT(p.name, ', ') as products,
-                           GROUP_CONCAT(mt.name, ', ') as maintainers
+                            m.created_at, m.updated_at,
+                            GROUP_CONCAT(p.name, ', ') as products,
+                            GROUP_CONCAT(mt.name, ', ') as maintainers
                     FROM machines m
                     LEFT JOIN machine_products mp ON m.id = mp.machine_id
                     LEFT JOIN products p ON mp.product_id = p.id
                     LEFT JOIN machine_maintainers mm ON m.id = mm.machine_id
                     LEFT JOIN maintainers mt ON mm.maintainer_id = mt.id
                     WHERE m.name = ?
-                    GROUP BY m.id, m.name, m.region, m.dimension, m.coordinates
+                    GROUP BY m.id, m.name, m.region, m.dimension, m.coordinates, m.created_at, m.updated_at
                 '''
 
                 cursor.execute(query, (machine_name,))
@@ -295,10 +296,12 @@ class DatabaseManager:
                         'id': row[0],
                         'name': row[1],
                         'region': row[2] or '',
-                        'products': row[5].split(', ') if row[5] else [],
-                        'maintainers': row[6].split(', ') if row[6] else [],
                         'dimension': row[3] or '',
-                        'coordinates': row[4] or ''
+                        'coordinates': row[4] or '',
+                        'created_time': row[5] or '',
+                        'last_edited_time': row[6] or '',
+                        'products': row[7].split(', ') if row[7] else [],
+                        'maintainers': row[8].split(', ') if row[8] else []
                     }
 
                 return None
