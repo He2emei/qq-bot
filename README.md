@@ -72,9 +72,17 @@
 - `#machine_detail <机器名>` - 获取机器详细信息
 
 ### 5. **FAQ系统**
-- `#faq` - 显示FAQ列表
-- `#faq <关键词>` - 查询特定FAQ
-- `#faq edit <关键词>` - 编辑FAQ条目
+- `#faq <关键词>` - 查询特定FAQ内容
+- `#faq list` - 显示所有FAQ条目的关键字列表
+- `#faq edit <关键词> <内容>` - 新增或编辑FAQ条目
+- `#faq delete <关键词>` - 删除指定的FAQ条目
+- `#faq help` - 显示FAQ功能帮助信息
+
+#### FAQ功能特点
+- ✅ **本地化存储**：所有FAQ内容存储在本地数据库中
+- ✅ **图片支持**：支持文本和图片内容，自动下载图片到本地
+- ✅ **完整管理**：支持增删改查的完整功能
+- ✅ **实时同步**：修改后立即生效
 
 ## 📊 数据存储架构
 
@@ -221,7 +229,9 @@ python tests/test_faq.py
 #machine_regions
 #machine_search 铁锭
 #daily
-#help
+#faq help
+#faq list
+#faq delete test_key
 ```
 
 ## 📋 项目管理和Todolist功能
@@ -360,7 +370,7 @@ python test_machine_debug.py
 
 ## 🎯 版本信息
 
-- **当前版本**: v1.0.0
+- **当前版本**: v1.1.0
 - **最后更新**: 2024年8月27日
 - **Python版本**: 3.7+
 - **主要依赖**: Flask, requests, sqlite3, APScheduler
@@ -394,5 +404,7 @@ python test_machine_debug.py
 ---
 
 **项目状态**: ✅ 功能完整，文档齐全，可投入使用
+
+**最新更新**: 新增FAQ系统的列表查询和删除功能，修复help命令识别问题
 
 *如有问题或建议，请查看详细文档或检查日志输出。*

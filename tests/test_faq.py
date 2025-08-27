@@ -106,6 +106,11 @@ def test_new_faq_features():
     # 测试主入口函数的新命令
     print("\n测试主入口函数的新命令:")
 
+    # 测试#faq help命令
+    print("\n测试#faq help命令:")
+    event = create_mock_event('#faq help')
+    handle_faq_command(event)
+
     # 测试#faq list命令
     event = create_mock_event('#faq list')
     handle_faq_command(event)

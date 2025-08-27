@@ -197,6 +197,25 @@ def handle_faq_command(event_data):
         handle_faq_delete(event_data)
     elif message_text.startswith('#faq edit '):
         handle_faq_edit(event_data)
+    elif message_text == '#faq help':
+        # 显示帮助信息
+        group_id = event_data.get('group_id')
+        if group_id:
+            help_msg = (
+                "📚 FAQ 功能帮助:\n\n"
+                "🔍 查询FAQ:\n"
+                "#faq <key> - 查询指定key的FAQ内容\n\n"
+                "📝 列出FAQ:\n"
+                "#faq list - 显示所有FAQ条目的关键字列表\n\n"
+                "✏️ 编辑FAQ:\n"
+                "#faq edit <key> <contents> - 新增或覆盖指定key的FAQ内容\n\n"
+                "🗑️ 删除FAQ:\n"
+                "#faq delete <key> - 删除指定的FAQ条目\n\n"
+                "💡 提示: contents支持文本和图片\n"
+                "🖼️ 图片处理: 系统会自动下载图片并保存到本地，确保图片永久可用\n"
+                "📎 支持格式: 直接发送图片或使用图片URL"
+            )
+            send_group_message(group_id, help_msg)
     elif message_text.startswith('#faq '):
         handle_faq_query(event_data)
     else:
@@ -213,7 +232,7 @@ def handle_faq_command(event_data):
                 "#faq edit <key> <contents> - 新增或覆盖指定key的FAQ内容\n\n"
                 "🗑️ 删除FAQ:\n"
                 "#faq delete <key> - 删除指定的FAQ条目\n\n"
-                " 提示: contents支持文本和图片\n"
+                "💡 提示: contents支持文本和图片\n"
                 "🖼️ 图片处理: 系统会自动下载图片并保存到本地，确保图片永久可用\n"
                 "📎 支持格式: 直接发送图片或使用图片URL"
             )
