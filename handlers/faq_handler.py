@@ -1,8 +1,20 @@
 # handlers/faq_handler.py
 from services.database_manager import database_manager
 from utils.api_utils import send_group_message
+from utils.image_utils import image_manager
 import config
 import re
+
+
+def process_faq_content(content):
+    """处理FAQ内容，将图片URL下载到本地并转换为CQ码格式"""
+    try:
+        # 使用图片管理器处理内容中的图片
+        processed_content = image_manager.process_content_images(content)
+        return processed_content
+    except Exception as e:
+        print(f"处理FAQ内容失败: {e}")
+        return content
 
 
 def convert_content_to_cq(content):
@@ -46,11 +58,8 @@ def handle_faq_query(event_data):
             send_group_message(group_id, f"未找到FAQ条目: {key}")
             return
 
-        # 转换内容中的图片URL为CQ码格式
-        converted_content = convert_content_to_cq(content)
-
-        # 发送内容
-        response = f"📖 FAQ [{key}]:\n\n{converted_content}"
+        # 内容已经是处理过的格式（包含本地图片路径），直接发送
+        response = f"📖 FAQ [{key}]:\n\n{content}"
         send_group_message(group_id, response)
 
     except Exception as e:
@@ -89,11 +98,17 @@ def handle_faq_edit(event_data):
             send_group_message(group_id, "key和内容不能为空")
             return
 
+        # 处理内容中的图片，下载到本地
+        processed_contents = process_faq_content(contents)
+
         # 设置FAQ内容
-        success = database_manager.set_faq_content(key, contents)
+        success = database_manager.set_faq_content(key, processed_contents)
 
         if success:
             send_group_message(group_id, f"✅ FAQ条目 [{key}] 已更新")
+            # 如果内容包含图片，显示处理结果
+            if '[CQ:image' in processed_contents and processed_contents != contents:
+                send_group_message(group_id, "🖼️ 图片已下载并保存到本地")
         else:
             send_group_message(group_id, f"❌ 更新FAQ条目 [{key}] 失败")
 
@@ -123,7 +138,8 @@ def handle_faq_command(event_data):
                 "#faq <key> - 查询指定key的FAQ内容\n\n"
                 "✏️ 编辑FAQ:\n"
                 "#faq edit <key> <contents> - 新增或覆盖指定key的FAQ内容\n\n"
-                "💡 提示: contents支持文本和图片URL\n"
-                "🖼️ 图片格式: https://example.com/image.jpg (会自动转换为CQ码)"
+                "💡 提示: contents支持文本和图片\n"
+                "🖼️ 图片处理: 系统会自动下载图片并保存到本地，确保图片永久可用\n"
+                "📎 支持格式: 直接发送图片或使用图片URL"
             )
             send_group_message(group_id, help_msg)
