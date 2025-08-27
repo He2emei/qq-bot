@@ -4,10 +4,11 @@
 
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# 添加项目根目录到路径
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from services.database_manager import database_manager
-from handlers.faq_handler import handle_faq_query, handle_faq_edit, handle_faq_command
+from handlers.faq_handler import handle_faq_query, handle_faq_edit, handle_faq_command, handle_faq_list, handle_faq_delete
 
 def test_database_operations():
     """测试数据库操作"""
@@ -62,6 +63,56 @@ def test_content_conversion():
     mixed_content = "规则说明:\n1. 第一条规则\n2. 第二条规则 https://example.com/rule.jpg\n3. 第三条规则"
     converted = convert_content_to_cq(mixed_content)
     print(f"混合内容转换: {converted}")
+
+    print()
+
+def test_new_faq_features():
+    """测试新增的FAQ功能：列表查询和删除"""
+    print("=== 测试新增的FAQ功能 ===")
+
+    # 模拟事件数据
+    def create_mock_event(message_text, group_id=123456):
+        return {
+            'message': message_text,
+            'group_id': group_id
+        }
+
+    # 首先创建一些测试数据
+    print("创建测试数据...")
+    database_manager.set_faq_content("test_list_1", "这是第一个测试FAQ")
+    database_manager.set_faq_content("test_list_2", "这是第二个测试FAQ")
+    database_manager.set_faq_content("test_delete_me", "这个FAQ将被删除")
+
+    # 测试列出FAQ列表
+    print("\n测试列出FAQ列表:")
+    event = create_mock_event('#faq list')
+    handle_faq_list(event)
+
+    # 测试删除存在的FAQ
+    print("\n测试删除存在的FAQ:")
+    event = create_mock_event('#faq delete test_delete_me')
+    handle_faq_delete(event)
+
+    # 测试删除不存在的FAQ
+    print("\n测试删除不存在的FAQ:")
+    event = create_mock_event('#faq delete nonexistent_key')
+    handle_faq_delete(event)
+
+    # 再次列出FAQ列表，确认删除成功
+    print("\n删除后再次列出FAQ列表:")
+    event = create_mock_event('#faq list')
+    handle_faq_list(event)
+
+    # 测试主入口函数的新命令
+    print("\n测试主入口函数的新命令:")
+
+    # 测试#faq list命令
+    event = create_mock_event('#faq list')
+    handle_faq_command(event)
+
+    # 测试#faq delete命令
+    event = create_mock_event('#faq delete test_list_1')
+    handle_faq_command(event)
 
     print()
 
@@ -124,6 +175,9 @@ if __name__ == "__main__":
 
     # 测试内容转换功能
     test_content_conversion()
+
+    # 测试新增的FAQ功能
+    test_new_faq_features()
 
     # 测试处理器函数
     test_handler_functions()

@@ -120,11 +120,82 @@ def handle_faq_edit(event_data):
             send_group_message(group_id, error_msg)
 
 
+def handle_faq_list(event_data):
+    """处理 #faq list 命令，显示所有FAQ关键字列表"""
+    try:
+        group_id = event_data.get('group_id')
+
+        # 获取所有FAQ key列表
+        faq_keys = database_manager.list_all_faq_keys()
+
+        if not faq_keys:
+            send_group_message(group_id, "📝 当前没有任何FAQ条目")
+            return
+
+        # 格式化FAQ列表
+        faq_list_text = "📚 FAQ 条目列表:\n\n"
+        for i, key in enumerate(faq_keys, 1):
+            faq_list_text += f"{i}. {key}\n"
+
+        faq_list_text += f"\n共 {len(faq_keys)} 个FAQ条目"
+        faq_list_text += "\n\n💡 使用 #faq <key> 查看具体内容"
+
+        send_group_message(group_id, faq_list_text)
+
+    except Exception as e:
+        error_msg = f"获取FAQ列表失败: {str(e)}"
+        print(error_msg)
+        group_id = event_data.get('group_id')
+        if group_id:
+            send_group_message(group_id, error_msg)
+
+
+def handle_faq_delete(event_data):
+    """处理 #faq delete [key] 命令，删除指定FAQ条目"""
+    try:
+        message_text = event_data.get('message', '')
+        group_id = event_data.get('group_id')
+
+        if not message_text.startswith('#faq delete '):
+            send_group_message(group_id, "格式错误，请使用: #faq delete <key>")
+            return
+
+        key = message_text[12:].strip()  # 移除 '#faq delete ' 前缀
+        if not key:
+            send_group_message(group_id, "请指定要删除的key")
+            return
+
+        # 确认FAQ条目存在
+        existing_content = database_manager.get_faq_content(key)
+        if existing_content is None:
+            send_group_message(group_id, f"❌ 未找到FAQ条目: {key}")
+            return
+
+        # 删除FAQ条目
+        success = database_manager.delete_faq_content(key)
+
+        if success:
+            send_group_message(group_id, f"✅ FAQ条目 [{key}] 已删除")
+        else:
+            send_group_message(group_id, f"❌ 删除FAQ条目 [{key}] 失败")
+
+    except Exception as e:
+        error_msg = f"删除FAQ失败: {str(e)}"
+        print(error_msg)
+        group_id = event_data.get('group_id')
+        if group_id:
+            send_group_message(group_id, error_msg)
+
+
 def handle_faq_command(event_data):
     """处理所有FAQ相关命令的主入口"""
     message_text = event_data.get('message', '')
 
-    if message_text.startswith('#faq edit '):
+    if message_text == '#faq list':
+        handle_faq_list(event_data)
+    elif message_text.startswith('#faq delete '):
+        handle_faq_delete(event_data)
+    elif message_text.startswith('#faq edit '):
         handle_faq_edit(event_data)
     elif message_text.startswith('#faq '):
         handle_faq_query(event_data)
@@ -136,9 +207,13 @@ def handle_faq_command(event_data):
                 "📚 FAQ 功能帮助:\n\n"
                 "🔍 查询FAQ:\n"
                 "#faq <key> - 查询指定key的FAQ内容\n\n"
+                "📝 列出FAQ:\n"
+                "#faq list - 显示所有FAQ条目的关键字列表\n\n"
                 "✏️ 编辑FAQ:\n"
                 "#faq edit <key> <contents> - 新增或覆盖指定key的FAQ内容\n\n"
-                "💡 提示: contents支持文本和图片\n"
+                "🗑️ 删除FAQ:\n"
+                "#faq delete <key> - 删除指定的FAQ条目\n\n"
+                " 提示: contents支持文本和图片\n"
                 "🖼️ 图片处理: 系统会自动下载图片并保存到本地，确保图片永久可用\n"
                 "📎 支持格式: 直接发送图片或使用图片URL"
             )
