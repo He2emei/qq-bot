@@ -1,0 +1,3 @@
+# This file ensures the faq_images directory is tracked by git
+# even when it's empty. This directory contains downloaded FAQ images
+# that should not be shared between different deployments.

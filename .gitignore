@@ -5,6 +5,13 @@ data/ze_account.json
 data/memory.json
 data/yqm.json
 
+# 数据库文件 - 包含用户数据和FAQ内容
+data/machines.db
+data/faq_images/
+
+# 帮助文件 - 用户自定义内容
+data/help.json
+
 # Python
 __pycache__/
 *.py[cod]
@@ -108,3 +115,6 @@ logs/
 *.tmp
 backup/
 reference/
+
+# 测试和临时文件
+*.bundle
