@@ -8,13 +8,21 @@ def handle_help_command(event):
     """处理 #help 命令"""
     group_id = event['group_id']
 
+    # 只对 default、me、game 群生效
+    allowed_groups = [
+        config.GROUP_IDS['default'],
+        config.GROUP_IDS['me'],
+        config.GROUP_IDS['game']
+    ]
+    if group_id not in allowed_groups:
+        return
+
     help_text = (
         "🤖 QQ Bot 功能帮助\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "📍 当前群组可用功能：\n\n"
 
-        "🔐 AQL 功能 (仅对 haochang 群有效)\n"
-        "  • .aql / #aql <账号名> - 查询账号动态码\n"
-        "  • .aqladd / #aqladd <账号名> <密钥> - 添加AQL账号\n\n"
+        "🏠 default群、me群、game群 可用功能：\n"
 
         "🎮 游戏管理功能\n"
         "  • #玩什么 - 随机选择游戏\n"
@@ -45,7 +53,15 @@ def handle_help_command(event):
         "  • #atls - 列出所有@信息\n"
         "  • #atdel <用户名> - 删除@信息\n\n"
 
-        "❓ 帮助\n"
+        "════════════════════════════════\n"
+        "🌟 haochang群 专门功能：\n\n"
+
+        "🔐 AQL功能 (仅限 haochang 群)\n"
+        "  • .aql / #aql <账号名> - 查询账号动态码\n"
+        "  • .aqladd / #aqladd <账号名> <密钥> - 添加AQL账号\n\n"
+
+        "════════════════════════════════\n"
+        "❓ 通用帮助\n"
         "  • #help - 显示此帮助信息"
     )
 
@@ -54,6 +70,16 @@ def handle_help_command(event):
 def handle_game_command(event):
     """处理所有与游戏、WD、MC相关的命令"""
     group_id = event['group_id']
+
+    # 只对 default、me、game 群生效
+    allowed_groups = [
+        config.GROUP_IDS['default'],
+        config.GROUP_IDS['me'],
+        config.GROUP_IDS['game']
+    ]
+    if group_id not in allowed_groups:
+        return
+
     message = event['message'].strip()
 
     command_map = {

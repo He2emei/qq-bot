@@ -5,11 +5,26 @@ from services.notion_service import daily_manager, notion_service
 from utils.notion_utils import process_notion_blocks
 from utils.api_utils import send_group_message
 import config
+from typing import List
+
+
+def _check_main_group_permission(group_id: int) -> bool:
+    """检查是否为主要群组（default、me、game）"""
+    allowed_groups = [
+        config.GROUP_IDS['default'],
+        config.GROUP_IDS['me'],
+        config.GROUP_IDS['game']
+    ]
+    return group_id in allowed_groups
 
 
 def handle_daily_command(event_data):
     """处理 #daily 命令，获取今日日记内容"""
     try:
+        group_id = event_data.get('group_id')
+        if not _check_main_group_permission(group_id):
+            return
+
         # 获取今日页面
         today_page = daily_manager.get_today_page()
 
@@ -52,6 +67,10 @@ def handle_daily_command(event_data):
 def handle_add_daily_command(event_data):
     """处理 #add_daily 命令，创建今日日记页面"""
     try:
+        group_id = event_data.get('group_id')
+        if not _check_main_group_permission(group_id):
+            return
+
         # 检查今日页面是否已存在
         today_page = daily_manager.get_today_page()
 
@@ -78,6 +97,10 @@ def handle_add_daily_command(event_data):
 def handle_update_cover_command(event_data):
     """处理 #update_cover 命令，更新今日封面"""
     try:
+        group_id = event_data.get('group_id')
+        if not _check_main_group_permission(group_id):
+            return
+
         success = daily_manager.update_daily_cover()
 
         if success:
@@ -102,6 +125,10 @@ def handle_update_cover_command(event_data):
 
 def handle_notion_command(event_data):
     """处理所有 Notion 相关命令的主入口"""
+    group_id = event_data.get('group_id')
+    if not _check_main_group_permission(group_id):
+        return
+
     message_text = event_data.get('message', '')
 
     if message_text.startswith('#daily'):
