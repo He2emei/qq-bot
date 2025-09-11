@@ -9,12 +9,12 @@ import config
 # 导入所有处理器
 from handlers import aql_handler, game_handler, notion_handler, at_handler#, ai_handler, general_handler
 
-# 启动 Notion 定时任务调度器
-try:
-    from services.notion_scheduler import start_notion_scheduler
-    start_notion_scheduler()
-except Exception as e:
-    print(f"启动 Notion 调度器失败: {e}")
+# 启动 Notion 定时任务调度器 (需要安装 APScheduler 包)
+# try:
+#     from services.notion_scheduler import start_notion_scheduler
+#     start_notion_scheduler()
+# except Exception as e:
+#     print(f"启动 Notion 调度器失败: {e}")
 
 app = Flask(__name__)
 

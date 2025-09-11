@@ -100,6 +100,7 @@ def handle_update_cover_command(event_data):
 
 
 
+def handle_notion_command(event_data):
     """处理所有 Notion 相关命令的主入口"""
     message_text = event_data.get('message', '')
 

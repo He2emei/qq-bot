@@ -1,6 +1,21 @@
 import requests
-from bs4 import BeautifulSoup
-from openai import OpenAI
+try:
+    from bs4 import BeautifulSoup
+    HAS_BS4 = True
+except ImportError:
+    HAS_BS4 = False
+    print("Warning: BeautifulSoup (bs4) not available. Some features may not work properly.")
+
+try:
+    from openai import OpenAI
+    HAS_OPENAI = True
+except ImportError:
+    HAS_OPENAI = False
+    print("Warning: OpenAI package not available. AI features may not work properly.")
+    # Create a dummy OpenAI class to prevent import errors
+    class OpenAI:
+        def __init__(self, api_key=None, base_url=None):
+            pass
 import config # 导入配置
 
 def send_group_message(group_id, message):
@@ -43,9 +58,14 @@ def get_dynamic_code_2(api_key):
             if response.status_code != 200:
                 print(f"请求动态码失败，状态码：{response.status_code}")
                 return None
+
+            if not HAS_BS4:
+                print("BeautifulSoup not available, cannot parse HTML response")
+                return None
+
             soup = BeautifulSoup(response.text, 'html.parser')
             code_div = soup.find('div', {'class': 'dynamic-code'})
-            
+
             if code_div:
                 dynamic_code = code_div.get_text(strip=True)
                 if dynamic_code and dynamic_code != "等待提交...":
