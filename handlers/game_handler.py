@@ -8,15 +8,6 @@ def handle_help_command(event):
     """处理 #help 命令"""
     group_id = event['group_id']
 
-    # 只对 default、me、game 群生效
-    allowed_groups = [
-        config.GROUP_IDS['default'],
-        config.GROUP_IDS['me'],
-        config.GROUP_IDS['game']
-    ]
-    if group_id not in allowed_groups:
-        return
-
     help_text = (
         "🤖 QQ Bot 功能帮助\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -70,15 +61,6 @@ def handle_help_command(event):
 def handle_game_command(event):
     """处理所有与游戏、WD、MC相关的命令"""
     group_id = event['group_id']
-
-    # 只对 default、me、game 群生效
-    allowed_groups = [
-        config.GROUP_IDS['default'],
-        config.GROUP_IDS['me'],
-        config.GROUP_IDS['game']
-    ]
-    if group_id not in allowed_groups:
-        return
 
     message = event['message'].strip()
 

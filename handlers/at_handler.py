@@ -9,15 +9,6 @@ def handle_at_command(event):
     user_id = event['user_id']
     message = event['message'].strip()
 
-    # 只对 default、me、game 群生效
-    allowed_groups = [
-        config.GROUP_IDS['default'],
-        config.GROUP_IDS['me'],
-        config.GROUP_IDS['game']
-    ]
-    if group_id not in allowed_groups:
-        return
-
     if not message.startswith('#at ') or len(message) <= 4:
         return
 
@@ -51,15 +42,6 @@ def handle_at_add(event):
     group_id = event['group_id']
     message = event['message'].strip()
 
-    # 只对 default、me、game 群生效
-    allowed_groups = [
-        config.GROUP_IDS['default'],
-        config.GROUP_IDS['me'],
-        config.GROUP_IDS['game']
-    ]
-    if group_id not in allowed_groups:
-        return
-
     if not message.startswith('#atadd ') or len(message) <= 7:
         send_group_message(group_id, "格式错误，请使用 #atadd <昵称> <QQ号1> [QQ号2] ...")
         return
@@ -85,16 +67,6 @@ def handle_at_add(event):
 def handle_at_list(event):
     """处理 #atls 命令"""
     group_id = event['group_id']
-
-    # 只对 default、me、game 群生效
-    allowed_groups = [
-        config.GROUP_IDS['default'],
-        config.GROUP_IDS['me'],
-        config.GROUP_IDS['game']
-    ]
-    if group_id not in allowed_groups:
-        return
-
     at_data = load_json(config.DATA_PATHS['at'])
     send_group_message(group_id, f"当前昵称配置：{at_data['nickname']}")
 
@@ -102,15 +74,6 @@ def handle_at_delete(event):
     """处理 #atdel 命令"""
     group_id = event['group_id']
     message = event['message'].strip()
-
-    # 只对 default、me、game 群生效
-    allowed_groups = [
-        config.GROUP_IDS['default'],
-        config.GROUP_IDS['me'],
-        config.GROUP_IDS['game']
-    ]
-    if group_id not in allowed_groups:
-        return
 
     if not message.startswith('#atdel ') or len(message) <= 7:
         send_group_message(group_id, "格式错误，请使用 #atdel <昵称> [QQ号1] [QQ号2] ...")
