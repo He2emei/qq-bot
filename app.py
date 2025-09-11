@@ -9,25 +9,17 @@ import config
 # 导入所有处理器
 from handlers import aql_handler, game_handler, notion_handler, at_handler#, ai_handler, general_handler
 
-# 启动 Notion 定时任务调度器 (需要安装 APScheduler 包)
-# try:
-#     from services.notion_scheduler import start_notion_scheduler
-#     start_notion_scheduler()
-# except Exception as e:
-#     print(f"启动 Notion 调度器失败: {e}")
+# 启动 Notion 定时任务调度器
+try:
+    from services.notion_scheduler import start_notion_scheduler
+    start_notion_scheduler()
+except Exception as e:
+    print(f"启动 Notion 调度器失败: {e}")
 
 app = Flask(__name__)
 
 # 命令路由器：将命令前缀映射到处理函数
 # key: 命令前缀, value: 对应的处理函数
-# 群组权限配置
-GROUP_PERMISSIONS = {
-    # 主群组：具有所有功能的权限
-    'main_groups': [config.GROUP_IDS['default'], config.GROUP_IDS['me'], config.GROUP_IDS['game']],
-    # AQL专用群组：只有AQL功能的权限
-    'aql_groups': [config.GROUP_IDS['haochang']],
-}
-
 COMMAND_ROUTER = {
     '.aqladd': aql_handler.handle_aql_add,
     '#aqladd': aql_handler.handle_aql_add,
@@ -66,21 +58,6 @@ COMMAND_ROUTER = {
     # '#dsr1': ai_handler.handle_dsr1,
     # '.yqm': general_handler.handle_yqm,
 }
-
-# 命令权限分类
-AQL_COMMANDS = {'.aqladd', '#aqladd', '.aql', '#aql'}
-MAIN_COMMANDS = {cmd for cmd in COMMAND_ROUTER.keys() if cmd not in AQL_COMMANDS}
-
-def _check_command_permission(group_id: int, command: str) -> bool:
-    """检查命令是否被允许在指定群组中执行"""
-    # AQL命令只能在AQL专用群组中执行
-    if command in AQL_COMMANDS:
-        return group_id in GROUP_PERMISSIONS['aql_groups']
-    # 主功能命令可以在主群组中执行
-    elif command in MAIN_COMMANDS:
-        return group_id in GROUP_PERMISSIONS['main_groups']
-    # 默认允许（虽然不应该发生）
-    return False
 
 
 def get_message_text(message_objects):
@@ -128,24 +105,14 @@ def receive_event():
 
     print(f"Received from group {group_id}: {message_text}")
 
-    # 将消息文本注入回event_data，方便处理器使用
-    event_data['message'] = message_text
-
-    matched_command = None
-    # 查找匹配的命令
+    # 调试信息：显示前缀匹配
     for command in COMMAND_ROUTER:
         if message_text.startswith(command):
-            matched_command = command
             print(f"Command matched: '{command}' for message: '{message_text}'")
             break
 
-    if not matched_command:
-        return "OK", 200  # 没有匹配的命令，正常响应
-
-    # 检查群组权限
-    if not _check_command_permission(group_id, matched_command):
-        print(f"Permission denied for command '{matched_command}' in group {group_id}")
-        return "Command not permitted for this group", 200
+    # 将消息文本注入回event_data，方便处理器使用
+    event_data['message'] = message_text
 
     # 根据命令前缀分发到对应的处理器
     for command, handler_func in COMMAND_ROUTER.items():
