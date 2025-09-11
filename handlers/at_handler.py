@@ -67,8 +67,15 @@ def handle_at_add(event):
 def handle_at_list(event):
     """处理 #atls 命令"""
     group_id = event['group_id']
-    at_data = load_json(config.DATA_PATHS['at'])
-    send_group_message(group_id, f"当前昵称配置：{at_data['nickname']}")
+    try:
+        at_data = load_json(config.DATA_PATHS['at'])
+        if 'nickname' in at_data:
+            send_group_message(group_id, f"当前昵称配置：{at_data['nickname']}")
+        else:
+            send_group_message(group_id, "昵称配置数据格式错误")
+    except Exception as e:
+        print(f"#atls 数据加载失败: {e}")
+        send_group_message(group_id, "加载数据时出错，请稍后再试")
 
 def handle_at_delete(event):
     """处理 #atdel 命令"""
