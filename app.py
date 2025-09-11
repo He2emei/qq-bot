@@ -7,7 +7,7 @@ load_dotenv()
 import config
 
 # 导入所有处理器
-from handlers import aql_handler, game_handler, notion_handler, at_handler, faq_handler#, ai_handler, general_handler
+from handlers import aql_handler, game_handler, notion_handler, at_handler#, ai_handler, general_handler
 
 # 启动 Notion 定时任务调度器
 try:
@@ -44,15 +44,6 @@ COMMAND_ROUTER = {
     '#daily': notion_handler.handle_notion_command,
     '#add_daily': notion_handler.handle_notion_command,
     '#update_cover': notion_handler.handle_notion_command,
-    '#machine_search': notion_handler.handle_notion_command,
-    '#machine_region': notion_handler.handle_notion_command,
-    '#machine_regions': notion_handler.handle_notion_command,
-    '#machine_products': notion_handler.handle_notion_command,
-    '#machine_detail': notion_handler.handle_notion_command,
-    '#machine_add': notion_handler.handle_notion_command,
-    '#machine_update': notion_handler.handle_notion_command,
-    '#machine_delete': notion_handler.handle_notion_command,
-    '#machine_help': notion_handler.handle_notion_command,
 
     # @ 相关命令
     '#at': at_handler.handle_at_command,
@@ -60,9 +51,6 @@ COMMAND_ROUTER = {
     '#atls': at_handler.handle_at_list,
     '#atdel': at_handler.handle_at_delete,
 
-    # FAQ 相关命令
-    '#faq': faq_handler.handle_faq_command,
-    '#faq edit': faq_handler.handle_faq_command,
 
     # 帮助命令
     '#help': game_handler.handle_help_command,
@@ -124,13 +112,8 @@ def receive_event():
             print(f"Command matched: '{command}' for message: '{message_text}'")
             break
 
-    # 对于FAQ编辑命令，使用完整消息内容（包括图片）
-    if message_text.startswith('#faq edit'):
-        full_content = get_full_message_content(event_data)
-        event_data['message'] = full_content
-    else:
-        # 将消息文本注入回event_data，方便处理器使用
-        event_data['message'] = message_text
+    # 将消息文本注入回event_data，方便处理器使用
+    event_data['message'] = message_text
 
     # 根据命令前缀分发到对应的处理器
     for command, handler_func in COMMAND_ROUTER.items():

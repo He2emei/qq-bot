@@ -15,7 +15,11 @@ def handle_aql(event):
     group_id = event['group_id']
     user_id = event['user_id']
     message = event['message']
-    
+
+    # 只对 haochang 群生效
+    if group_id != config.GROUP_IDS['haochang']:
+        return
+
     key = message[5:].strip()
 
     if group_id in [config.GROUP_IDS['jjl_test'], config.GROUP_IDS['jjl']]:
@@ -43,7 +47,11 @@ def handle_aql_add(event):
     """处理 .aqladd 和 #aqladd 命令"""
     group_id = event['group_id']
     message = event['message']
-    
+
+    # 只对 haochang 群生效
+    if group_id != config.GROUP_IDS['haochang']:
+        return
+
     parts = message[8:].split()
     if len(parts) < 2:
         send_group_message(group_id, "格式错误，请使用 .aqladd <账户> <密钥>")

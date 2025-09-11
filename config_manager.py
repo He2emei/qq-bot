@@ -19,8 +19,7 @@ class ConfigManager:
             'authenticatorList': 'authenticatorList.json',
             'code': 'code.json',
             'ze_account': 'ze_account.json',
-            'memory': 'memory.json',
-            'yqm': 'yqm.json'
+            'memory': 'memory.json'
         }
         self.logger = logging.getLogger(__name__)
 
@@ -29,7 +28,7 @@ class ConfigManager:
         初始化敏感配置文件
 
         Args:
-            config_type: 配置类型 ('authenticatorList', 'code', 'ze_account', 'memory', 'yqm')
+            config_type: 配置类型 ('authenticatorList', 'code', 'ze_account', 'memory')
             template_data: 模板数据，如果不提供则使用默认模板
 
         Returns:
@@ -79,8 +78,7 @@ class ConfigManager:
             'memory': {
                 "last_answer_content": [],
                 "last_answer_content_v3": []
-            },
-            'yqm': []
+            }
         }
         return templates.get(config_type, {})
 
