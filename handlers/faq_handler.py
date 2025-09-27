@@ -31,7 +31,9 @@ def handle_faq_edit(event_data):
             send_group_message(group_id, "key和内容不能为空")
             return
 
-        processed_contents = process_faq_content(contents)
+        # 先将图片URL转换为CQ码格式，然后再处理图片下载
+        cq_converted_contents = convert_content_to_cq(contents)
+        processed_contents = process_faq_content(cq_converted_contents)
 
         success = database_manager.set_faq_content(key, processed_contents)
 
