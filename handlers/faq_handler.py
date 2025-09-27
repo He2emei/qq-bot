@@ -5,44 +5,49 @@ from utils.api_utils import send_group_message
 import config
 
 def handle_faq_edit(event_data):
-    """处理FAQ编辑命令: #not edit <key> <contents>"""
-    group_id = event_data['group_id']
-    message = event_data['message'].strip()
+    """处理 #not edit [key] [contents] 命令，编辑FAQ内容"""
+    try:
+        message_text = event_data.get('message', '')
+        group_id = event_data.get('group_id')
 
-    if not message.startswith('#not edit '):
-        return
+        if not message_text.startswith('#not edit '):
+            send_group_message(group_id, "格式错误，请使用: #not edit <key> <contents>")
+            return
 
-    content_part = message[10:].strip()
-    if not content_part:
-        send_group_message(group_id, "❌ 格式错误，请使用: #not edit <key> <contents>")
-        return
+        content_part = message_text[10:].strip()
+        if not content_part:
+            send_group_message(group_id, "请提供key和内容")
+            return
 
-    # 解析key和contents
-    space_index = content_part.find(' ')
-    if space_index == -1:
-        send_group_message(group_id, "❌ 格式错误，请使用: #not edit <key> <contents>")
-        return
+        space_index = content_part.find(' ')
+        if space_index == -1:
+            send_group_message(group_id, "请提供key和内容，用空格分隔")
+            return
 
-    key = content_part[:space_index].strip().lower()
-    contents = content_part[space_index + 1:].strip()
+        key = content_part[:space_index].strip()
+        contents = content_part[space_index + 1:].strip()
 
-    if not key or not contents:
-        send_group_message(group_id, "❌ key和contents不能为空")
-        return
+        if not key or not contents:
+            send_group_message(group_id, "key和内容不能为空")
+            return
 
-    # 处理内容中的图片
-    processed_contents = process_faq_content(contents)
+        processed_contents = process_faq_content(contents)
 
-    # 保存到数据库
-    success = database_manager.set_faq_content(key, processed_contents)
+        success = database_manager.set_faq_content(key, processed_contents)
 
-    if success:
-        response = f"✅ FAQ条目 [{key}] 已更新"
-        if processed_contents != contents:
-            response += "\n🖼️ 图片已下载并保存到本地"
-        send_group_message(group_id, response)
-    else:
-        send_group_message(group_id, "❌ 更新FAQ条目失败")
+        if success:
+            send_group_message(group_id, f"✅ FAQ条目 [{key}] 已更新")
+            if '[CQ:image' in processed_contents and processed_contents != contents:
+                send_group_message(group_id, "🖼️ 图片已下载并保存到本地")
+        else:
+            send_group_message(group_id, f"❌ 更新FAQ条目 [{key}] 失败")
+
+    except Exception as e:
+        error_msg = f"编辑FAQ失败: {str(e)}"
+        print(error_msg)
+        group_id = event_data.get('group_id')
+        if group_id:
+            send_group_message(group_id, error_msg)
 
 def handle_faq_delete(event_data):
     """处理FAQ删除命令: #not delete <key>"""
@@ -109,12 +114,29 @@ def handle_faq_help(event_data):
     send_group_message(group_id, help_text)
 
 def process_faq_content(content):
-    """预处理FAQ内容，包括图片处理"""
-    return image_manager.process_content_images(content)
+    """处理FAQ内容，将图片URL下载到本地并转换为CQ码格式"""
+    try:
+        # 使用图片管理器处理内容中的图片
+        processed_content = image_manager.process_content_images(content)
+        return processed_content
+    except Exception as e:
+        print(f"处理FAQ内容失败: {e}")
+        return content
 
 def convert_content_to_cq(content):
-    """将内容转换为CQ码格式（目前主要用于图片处理）"""
-    return process_faq_content(content)
+    """将内容中的图片URL转换为CQ码格式（如果还没有转换的话）"""
+    import re
+
+    if '[CQ:image' in content:
+        return content
+
+    image_url_pattern = r'https?://[^\s]+\.(?:jpg|jpeg|png|gif|bmp|webp)(?:\?[^\s]*)?'
+    def replace_image_url(match):
+        url = match.group(0)
+        return f'[CQ:image,url={url}]'
+
+    converted_content = re.sub(image_url_pattern, replace_image_url, content, flags=re.IGNORECASE)
+    return converted_content
 
 def handle_faq_command(event_data):
     """主FAQ命令路由器"""
@@ -147,23 +169,32 @@ def handle_faq_command(event_data):
             send_group_message(group_id, "❌ 无效的FAQ命令格式，使用 #not help 查看帮助")
 
 def handle_faq_query(event_data):
-    """处理FAQ查询命令: #not <key>"""
-    group_id = event_data['group_id']
-    message = event_data['message'].strip()
+    """处理 #not [key] 命令，查询FAQ内容"""
+    try:
+        message_text = event_data.get('message', '')
+        group_id = event_data.get('group_id')
 
-    if not message.startswith('#not '):
-        return
+        if not message_text.startswith('#not '):
+            send_group_message(group_id, "格式错误，请使用: #not <key>")
+            return
 
-    parts = message[5:].strip().split()
-    if len(parts) != 1:
-        send_group_message(group_id, "❌ 格式错误，请使用: #not <key>")
-        return
+        key = message_text[5:].strip()
+        if not key:
+            send_group_message(group_id, "请指定要查询的key")
+            return
 
-    key = parts[0].lower()
-    content = database_manager.get_faq_content(key)
+        content = database_manager.get_faq_content(key)
 
-    if content:
+        if content is None:
+            send_group_message(group_id, f"未找到FAQ条目: {key}")
+            return
+
         response = f"📖 FAQ [{key}]:\n\n{content}"
         send_group_message(group_id, response)
-    else:
-        send_group_message(group_id, f"❌ 未找到FAQ条目: {key}")
+
+    except Exception as e:
+        error_msg = f"查询FAQ失败: {str(e)}"
+        print(error_msg)
+        group_id = event_data.get('group_id')
+        if group_id:
+            send_group_message(group_id, error_msg)
