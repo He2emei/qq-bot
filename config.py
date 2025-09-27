@@ -62,3 +62,7 @@ NOTION_DATA_PATHS = {
     'weekly_template': 'data/notion_templates/weekly_template.json',
     'cache': 'data/notion_cache.json'
 }
+
+# === FAQ 配置 ===
+FAQ_DATABASE_PATH = 'data/faq.db'           # FAQ数据库路径
+FAQ_IMAGES_DIR = 'data/faq_images/'         # 图片存储目录
