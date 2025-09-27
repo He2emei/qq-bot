@@ -7,6 +7,7 @@ data/yqm.json
 
 # 数据库文件 - 包含用户数据和FAQ内容
 data/machines.db
+data/faq.db
 data/faq_images/
 
 # 帮助文件 - 用户自定义内容
