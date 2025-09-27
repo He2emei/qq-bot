@@ -121,7 +121,7 @@ def handle_faq_command(event_data):
     message = event_data['message'].strip()
 
     if message.startswith('#not '):
-        command_part = message[6:].strip()
+        command_part = message[5:].strip()
 
         if command_part.startswith('edit '):
             # 对于edit命令，需要重新构造消息以正确传递参数
