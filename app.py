@@ -52,11 +52,11 @@ COMMAND_ROUTER = {
     '#atdel': at_handler.handle_at_delete,
 
     # FAQ 相关命令
-    '#faqp': faq_handler.handle_faq_command,
-    '#faqp edit': faq_handler.handle_faq_command,
-    '#faqp delete': faq_handler.handle_faq_command,
-    '#faqp list': faq_handler.handle_faq_command,
-    '#faqp help': faq_handler.handle_faq_command,
+    '#not': faq_handler.handle_faq_command,
+    '#not edit': faq_handler.handle_faq_command,
+    '#not delete': faq_handler.handle_faq_command,
+    '#not list': faq_handler.handle_faq_command,
+    '#not help': faq_handler.handle_faq_command,
 
     # 帮助命令
     '#help': game_handler.handle_help_command,
