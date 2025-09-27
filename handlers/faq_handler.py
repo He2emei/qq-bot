@@ -146,8 +146,15 @@ def handle_faq_command(event_data):
         command_part = message[6:].strip()
 
         if command_part.startswith('edit '):
+            # 对于edit命令，需要重新构造消息以正确传递参数
+            # command_part = "edit test 123"，我们需要构造 "#faqp edit test 123"
+            reconstructed_message = '#faqp ' + command_part
+            event_data['message'] = reconstructed_message
             handle_faq_edit(event_data)
         elif command_part.startswith('delete '):
+            # 类似地处理delete命令
+            reconstructed_message = '#faqp ' + command_part
+            event_data['message'] = reconstructed_message
             handle_faq_delete(event_data)
         elif command_part == 'list':
             handle_faq_list(event_data)
