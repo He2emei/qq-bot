@@ -4,34 +4,12 @@ from utils.image_utils import image_manager
 from utils.api_utils import send_group_message
 import config
 
-def handle_faq_query(event_data):
-    """处理FAQ查询命令: #not <key>"""
-    group_id = event_data['group_id']
-    message = event_data['message'].strip()
-
-    if not message.startswith('#not ') or len(message) <= 6:
-        return
-
-    parts = message[5:].strip().split()
-    if len(parts) != 1:
-        send_group_message(group_id, "❌ 格式错误，请使用: #not <key>")
-        return
-
-    key = parts[0].lower()
-    content = database_manager.get_faq_content(key)
-
-    if content:
-        response = f"📖 FAQ [{key}]:\n\n{content}"
-        send_group_message(group_id, response)
-    else:
-        send_group_message(group_id, f"❌ 未找到FAQ条目: {key}")
-
 def handle_faq_edit(event_data):
     """处理FAQ编辑命令: #not edit <key> <contents>"""
     group_id = event_data['group_id']
     message = event_data['message'].strip()
 
-    if not message.startswith('#not edit ') or len(message) <= 12:
+    if not message.startswith('#not edit '):
         return
 
     content_part = message[10:].strip()
@@ -71,7 +49,7 @@ def handle_faq_delete(event_data):
     group_id = event_data['group_id']
     message = event_data['message'].strip()
 
-    if not message.startswith('#not delete ') or len(message) <= 14:
+    if not message.startswith('#not delete '):
         return
 
     parts = message[12:].strip().split()
@@ -167,3 +145,25 @@ def handle_faq_command(event_data):
             # 无效命令格式
             group_id = event_data['group_id']
             send_group_message(group_id, "❌ 无效的FAQ命令格式，使用 #not help 查看帮助")
+
+def handle_faq_query(event_data):
+    """处理FAQ查询命令: #not <key>"""
+    group_id = event_data['group_id']
+    message = event_data['message'].strip()
+
+    if not message.startswith('#not '):
+        return
+
+    parts = message[5:].strip().split()
+    if len(parts) != 1:
+        send_group_message(group_id, "❌ 格式错误，请使用: #not <key>")
+        return
+
+    key = parts[0].lower()
+    content = database_manager.get_faq_content(key)
+
+    if content:
+        response = f"📖 FAQ [{key}]:\n\n{content}"
+        send_group_message(group_id, response)
+    else:
+        send_group_message(group_id, f"❌ 未找到FAQ条目: {key}")
