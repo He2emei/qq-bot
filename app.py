@@ -118,15 +118,18 @@ def receive_event():
             print(f"Command matched: '{command}' for message: '{message_text}'")
             break
 
-    # 将消息文本注入回event_data，方便处理器使用
-    event_data['message'] = message_text
-
     # 对于FAQ编辑命令，如果有图片内容，需要合并命令和图片
     if message_text.startswith('#not edit'):
         full_content = get_full_message_content(event_data)
         if full_content and full_content != message_text:
             # 有额外的图片内容，将其添加到命令中
             event_data['message'] = message_text + ' ' + full_content
+        else:
+            # 没有额外图片内容，使用纯文本
+            event_data['message'] = message_text
+    else:
+        # 将消息文本注入回event_data，方便处理器使用
+        event_data['message'] = message_text
 
     # 根据命令前缀分发到对应的处理器
     for command, handler_func in COMMAND_ROUTER.items():
