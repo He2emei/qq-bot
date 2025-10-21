@@ -17,13 +17,24 @@ def add_today_job():
 
 
 def add_next_week_job():
-    """添加下周的页面（如果需要的话）"""
+    """添加本周的页面（如果需要的话）"""
     try:
-        print(f"[{datetime.now()}] 检查是否需要创建下周页面...")
-        # 这里可以添加创建周页面的逻辑
-        print(f"[{datetime.now()}] 下周页面检查完成")
+        from services.notion_service import weekly_manager
+        print(f"[{datetime.now()}] 检查是否需要创建本周页面...")
+
+        # 检查本周页面是否已存在
+        current_week_page = weekly_manager.get_current_week_page()
+
+        if not current_week_page:
+            # 如果本周页面不存在，创建一个
+            result = weekly_manager.add_current_week_page()
+            print(f"[{datetime.now()}] 本周页面创建成功: {result['id']}")
+        else:
+            print(f"[{datetime.now()}] 本周页面已存在: {current_week_page['id']}")
+
+        print(f"[{datetime.now()}] 本周页面检查完成")
     except Exception as e:
-        print(f"[{datetime.now()}] 下周页面处理失败: {e}")
+        print(f"[{datetime.now()}] 本周页面处理失败: {e}")
 
 
 def update_daily_cover_job():
@@ -63,7 +74,7 @@ class NotionScheduler:
             id='add_today_job'
         )
 
-        # 每周日0:30检查下周页面
+        # 每周一0:30创建本周页面
         self.scheduler.add_job(
             add_next_week_job,
             'cron',

@@ -1,0 +1,38 @@
+{
+  "properties": {
+    "Week": {
+      "type": "date",
+      "date": {
+        "start": ""
+      }
+    },
+    "Name": {
+      "type": "title",
+      "title": [
+        {
+          "type": "text",
+          "text": {
+            "content": "Week of "
+          }
+        },
+        {
+          "type": "mention",
+          "mention": {
+            "type": "date",
+            "date": {
+              "start": ""
+            }
+          }
+        }
+      ]
+    },
+    "目标": {
+      "type": "checkbox",
+      "checkbox": false
+    },
+    "总结": {
+      "type": "checkbox",
+      "checkbox": false
+    }
+  }
+}

@@ -123,6 +123,106 @@ class NotionService:
         return response.json()
 
 
+class NotionWeeklyManager:
+    """每周日记管理器"""
+
+    def __init__(self):
+        self.notion_service = NotionService(token_type="diary")
+
+    def get_week_start_date(self, dt: datetime) -> datetime:
+        """获取日期所在周的周一日期"""
+        # 获取当前日期是星期几（0 = 周一，6 = 周日）
+        weekday = dt.weekday()
+        # 计算本周周一的日期
+        week_start = dt - timedelta(days=weekday)
+        return week_start
+
+    def get_date_no_dash(self, dt: datetime) -> str:
+        """获取没有'-'的日期字符串"""
+        return dt.strftime("%Y%m%d")
+
+    def date_dt2nt(self, dt: datetime) -> str:
+        """datetime转Notion日期字符串"""
+        return dt.strftime("%Y-%m-%d")
+
+    def get_week_filter(self, week_start: datetime) -> Dict[str, Any]:
+        """获取周过滤器"""
+        return {
+            "property": "Week",
+            "date": {
+                "equals": self.date_dt2nt(week_start)
+            }
+        }
+
+    def get_current_week_page(self) -> Optional[Dict[str, Any]]:
+        """获取本周的日记页面"""
+        today = datetime.now()
+        week_start = self.get_week_start_date(today)
+        filter_json = self.get_week_filter(week_start)
+
+        try:
+            result = self.notion_service.query_database("Weekly Dairy 2.0", filter_json)
+            if result["results"]:
+                return result["results"][0]
+        except Exception as e:
+            print(f"获取本周日记页面时出错: {e}")
+
+        return None
+
+    def add_current_week_page(self) -> Dict[str, Any]:
+        """添加本周的日记页面"""
+        today = datetime.now()
+        week_start = self.get_week_start_date(today)
+
+        # 加载模板
+        import json
+        import os
+        template_path = config.NOTION_DATA_PATHS['weekly_template']
+        if os.path.exists(template_path):
+            with open(template_path, 'r', encoding='utf-8') as f:
+                page_data = json.load(f)
+        else:
+            # 默认模板
+            page_data = {
+                "properties": {
+                    "Week": {
+                        "type": "date",
+                        "date": {
+                            "start": self.date_dt2nt(week_start)
+                        }
+                    },
+                    "Name": {
+                        "type": "title",
+                        "title": [
+                            {
+                                "type": "text",
+                                "text": {
+                                    "content": f"Week of {self.date_dt2nt(week_start)}"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+
+        # 更新模板中的日期
+        if "properties" in page_data and "Week" in page_data["properties"]:
+            page_data["properties"]["Week"]["date"]["start"] = self.date_dt2nt(week_start)
+
+        if "properties" in page_data and "Name" in page_data["properties"]:
+            for title_item in page_data["properties"]["Name"]["title"]:
+                if title_item.get("type") == "mention" and "mention" in title_item and "date" in title_item["mention"]:
+                    title_item["mention"]["date"]["start"] = self.date_dt2nt(week_start)
+
+        try:
+            result = self.notion_service.add_page("Weekly Dairy 2.0", page_data)
+            print(f"Added current week page: {self.date_dt2nt(week_start)}")
+            return result
+        except Exception as e:
+            print(f"Error adding current week page: {e}")
+            raise
+
+
 class NotionDailyManager:
     """每日日记管理器"""
 
@@ -174,37 +274,56 @@ class NotionDailyManager:
         """添加今天的日记页面"""
         today = datetime.now()
 
-        # 构建页面数据
-        page_data = {
-            "properties": {
-                "Date": {
-                    "type": "date",
-                    "date": {
-                        "start": self.date_dt2nt(today)
-                    }
-                },
-                "Name": {
-                    "type": "title",
-                    "title": [
-                        {
-                            "type": "mention",
-                            "mention": {
-                                "type": "date",
-                                "date": {
-                                    "start": self.date_dt2nt(today)
+        # 加载模板
+        import json
+        import os
+        template_path = config.NOTION_DATA_PATHS['daily_template']
+        if os.path.exists(template_path):
+            with open(template_path, 'r', encoding='utf-8') as f:
+                page_data = json.load(f)
+        else:
+            # 默认模板
+            page_data = {
+                "properties": {
+                    "Date": {
+                        "type": "date",
+                        "date": {
+                            "start": self.date_dt2nt(today)
+                        }
+                    },
+                    "Name": {
+                        "type": "title",
+                        "title": [
+                            {
+                                "type": "mention",
+                                "mention": {
+                                    "type": "date",
+                                    "date": {
+                                        "start": self.date_dt2nt(today)
+                                    }
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "text": {
+                                    "content": f" {self.get_date_no_dash(today)}"
                                 }
                             }
-                        },
-                        {
-                            "type": "text",
-                            "text": {
-                                "content": f" {self.get_date_no_dash(today)}"
-                            }
-                        }
-                    ]
+                        ]
+                    }
                 }
             }
-        }
+
+        # 更新模板中的日期
+        if "properties" in page_data and "Date" in page_data["properties"]:
+            page_data["properties"]["Date"]["date"]["start"] = self.date_dt2nt(today)
+
+        if "properties" in page_data and "Name" in page_data["properties"]:
+            for title_item in page_data["properties"]["Name"]["title"]:
+                if title_item.get("type") == "mention" and "mention" in title_item and "date" in title_item["mention"]:
+                    title_item["mention"]["date"]["start"] = self.date_dt2nt(today)
+                elif title_item.get("type") == "text" and "text" in title_item:
+                    title_item["text"]["content"] = f" {self.get_date_no_dash(today)}"
 
         # 如果需要封面，添加Bing壁纸
         if with_cover:
@@ -265,3 +384,4 @@ class NotionDailyManager:
 # 全局服务实例
 notion_service = NotionService()
 daily_manager = NotionDailyManager()
+weekly_manager = NotionWeeklyManager()
