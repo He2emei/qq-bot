@@ -344,6 +344,7 @@ class NotionDailyManager:
         except requests.exceptions.HTTPError as e:
             print(f"HTTP Error adding today page: {e}")
             print(f"Response status: {e.response.status_code}")
+            print(f"Response headers: {dict(e.response.headers)}")
             try:
                 error_data = e.response.json()
                 print(f"Error details: {error_data}")
@@ -352,9 +353,11 @@ class NotionDailyManager:
                     print(f"Notion API Error Message: {error_data['message']}")
                 if 'code' in error_data:
                     print(f"Notion API Error Code: {error_data['code']}")
+                if 'details' in error_data:
+                    print(f"Notion API Error Details: {error_data['details']}")
             except Exception as json_error:
                 print(f"Failed to parse JSON error response: {json_error}")
-                print(f"Raw response text: {e.response.text}")
+                print(f"Raw response text: {e.response.text[:1000]}")  # 只显示前1000字符
             raise
         except Exception as e:
             print(f"Error adding today page: {e}")
