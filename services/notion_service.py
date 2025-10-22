@@ -347,8 +347,14 @@ class NotionDailyManager:
             try:
                 error_data = e.response.json()
                 print(f"Error details: {error_data}")
-            except:
-                print(f"Response text: {e.response.text}")
+                # 打印具体的错误消息
+                if 'message' in error_data:
+                    print(f"Notion API Error Message: {error_data['message']}")
+                if 'code' in error_data:
+                    print(f"Notion API Error Code: {error_data['code']}")
+            except Exception as json_error:
+                print(f"Failed to parse JSON error response: {json_error}")
+                print(f"Raw response text: {e.response.text}")
             raise
         except Exception as e:
             print(f"Error adding today page: {e}")
