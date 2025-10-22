@@ -331,7 +331,7 @@ class NotionDailyManager:
 
         # 调试输出
         import json
-        print(f"DEBUG: Daily page data: {json.dumps(page_data, indent=2, ensure_ascii=False)}")
+        print(f"DEBUG: Daily page data: {json.dumps(page_data, indent=2)}")
 
         # 调试输出
         import json
