@@ -341,6 +341,15 @@ class NotionDailyManager:
             result = self.notion_service.add_page("Daily Dairy 2.0", page_data)
             print(f"Added today page: {self.date_dt2nt(today)}")
             return result
+        except requests.exceptions.HTTPError as e:
+            print(f"HTTP Error adding today page: {e}")
+            print(f"Response status: {e.response.status_code}")
+            try:
+                error_data = e.response.json()
+                print(f"Error details: {error_data}")
+            except:
+                print(f"Response text: {e.response.text}")
+            raise
         except Exception as e:
             print(f"Error adding today page: {e}")
             raise
