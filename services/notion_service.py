@@ -365,6 +365,91 @@ class NotionDailyManager:
             return False
 
 
+class NotionWeeklyManager:
+    """每周日记管理器"""
+
+    def __init__(self):
+        self.notion_service = NotionService(token_type="diary")
+
+    def get_week_start_date(self, dt: datetime) -> datetime:
+        """获取日期所在周的周一日期"""
+        # 获取当前日期是星期几（0 = 周一，6 = 周日）
+        weekday = dt.weekday()
+        # 计算本周周一的日期
+        week_start = dt - timedelta(days=weekday)
+        return week_start
+
+    def get_date_no_dash(self, dt: datetime) -> str:
+        """获取没有'-'的日期字符串"""
+        return dt.strftime("%Y%m%d")
+
+    def date_dt2nt(self, dt: datetime) -> str:
+        """datetime转Notion日期字符串"""
+        return dt.strftime("%Y-%m-%d")
+
+    def get_week_filter(self, week_start: datetime) -> Dict[str, Any]:
+        """获取周过滤器"""
+        return {
+            "property": "Date",
+            "date": {
+                "equals": self.date_dt2nt(week_start)
+            }
+        }
+
+    def get_current_week_page(self) -> Optional[Dict[str, Any]]:
+        """获取本周的日记页面"""
+        today = datetime.now()
+        week_start = self.get_week_start_date(today)
+        filter_json = self.get_week_filter(week_start)
+
+        try:
+            result = self.notion_service.query_database("Weekly Dairy 2.0", filter_json)
+            if result["results"]:
+                return result["results"][0]
+        except Exception as e:
+            print(f"获取本周日记页面时出错: {e}")
+
+        return None
+
+    def add_current_week_page(self) -> Dict[str, Any]:
+        """添加本周的日记页面"""
+        today = datetime.now()
+        week_start = self.get_week_start_date(today)
+        week_end = week_start + timedelta(days=6)
+
+        # 构建页面数据
+        page_data = {
+            "properties": {
+                "Date": {
+                    "type": "date",
+                    "date": {
+                        "start": self.date_dt2nt(week_start),
+                        "end": self.date_dt2nt(week_end)
+                    }
+                },
+                "Name": {
+                    "type": "title",
+                    "title": [
+                        {
+                            "type": "text",
+                            "text": {
+                                "content": f"Week of {self.date_dt2nt(week_start)}"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+
+        try:
+            result = self.notion_service.add_page("Weekly Dairy 2.0", page_data)
+            print(f"Added current week page: {self.date_dt2nt(week_start)} to {self.date_dt2nt(week_end)}")
+            return result
+        except Exception as e:
+            print(f"Error adding current week page: {e}")
+            raise
+
+
 # 全局服务实例
 notion_service = NotionService()
 daily_manager = NotionDailyManager()
