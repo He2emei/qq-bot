@@ -329,6 +329,10 @@ class NotionDailyManager:
                 # 使用默认图片
                 page_data["cover"]["external"]["url"] = "https://picsum.photos/800/600?random=1"
 
+        # 调试输出
+        import json
+        print(f"DEBUG: Daily page data: {json.dumps(page_data, indent=2, ensure_ascii=False)}")
+
         try:
             result = self.notion_service.add_page("Daily Dairy 2.0", page_data)
             print(f"Added today page: {self.date_dt2nt(today)}")
