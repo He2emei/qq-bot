@@ -337,17 +337,21 @@ class NotionDailyManager:
         import json
         print(f"DEBUG: Daily page data: {json.dumps(page_data, indent=2, ensure_ascii=False)}")
 
+        print("About to call Notion API...")
         try:
             result = self.notion_service.add_page("Daily Dairy 2.0", page_data)
             print(f"Added today page: {self.date_dt2nt(today)}")
             return result
         except requests.exceptions.HTTPError as e:
-            print(f"HTTP Error adding today page: {e}")
+            print("=" * 50)
+            print("NOTION API ERROR DETAILS:")
+            print("=" * 50)
+            print(f"HTTP Error: {e}")
             print(f"Response status: {e.response.status_code}")
             print(f"Response headers: {dict(e.response.headers)}")
             try:
                 error_data = e.response.json()
-                print(f"Error details: {error_data}")
+                print(f"Full error response: {error_data}")
                 # 打印具体的错误消息
                 if 'message' in error_data:
                     print(f"Notion API Error Message: {error_data['message']}")
@@ -357,10 +361,14 @@ class NotionDailyManager:
                     print(f"Notion API Error Details: {error_data['details']}")
             except Exception as json_error:
                 print(f"Failed to parse JSON error response: {json_error}")
-                print(f"Raw response text: {e.response.text[:1000]}")  # 只显示前1000字符
+                raw_text = e.response.text
+                print(f"Raw response text (first 2000 chars): {raw_text[:2000]}")
+                if len(raw_text) > 2000:
+                    print(f"... (truncated, total length: {len(raw_text)})")
+            print("=" * 50)
             raise
         except Exception as e:
-            print(f"Error adding today page: {e}")
+            print(f"Other error adding today page: {e}")
             raise
 
     def update_daily_cover(self) -> bool:
