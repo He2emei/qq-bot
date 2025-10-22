@@ -42,5 +42,11 @@
       "type": "number",
       "number": null
     }
+  },
+  "cover": {
+    "type": "external",
+    "external": {
+      "url": ""
+    }
   }
 }
