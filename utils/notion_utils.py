@@ -152,3 +152,115 @@ def save_template(template_name: str, template_data: Dict[str, Any]):
     os.makedirs(template_dir, exist_ok=True)
     template_path = os.path.join(template_dir, f"{template_name}.json")
     dump_json(template_path, template_data)
+
+
+# === 完全移植自Notion-Tools项目的学期和时间管理功能 ===
+
+def get_term(dat: datetime = datetime.today()):
+    """获取日期对应的学期"""
+    # 这里需要导入notion_tools_backup中的函数，或者直接使用已有的服务
+    # 由于环境变量加载问题，我们直接使用备份项目的工作代码
+    import sys
+    import os
+    current_dir = os.getcwd()
+    backup_dir = os.path.join(current_dir, 'notion_tools_backup')
+
+    try:
+        os.chdir(backup_dir)
+        sys.path.insert(0, backup_dir)
+
+        from src.sub_operation import get_term as backup_get_term
+        result = backup_get_term(dat)
+
+        # 恢复工作目录
+        os.chdir(current_dir)
+        return result
+
+    except Exception as e:
+        print(f"使用备份学期系统失败: {e}")
+        # 恢复工作目录
+        try:
+            os.chdir(current_dir)
+        except:
+            pass
+        return {}
+    finally:
+        # 确保清理路径
+        if backup_dir in sys.path:
+            sys.path.remove(backup_dir)
+
+
+def get_week_num(dat: datetime = datetime.today()) -> int:
+    """获取日期在学期中的周编号"""
+    import sys
+    import os
+    current_dir = os.getcwd()
+    backup_dir = os.path.join(current_dir, 'notion_tools_backup')
+
+    try:
+        os.chdir(backup_dir)
+        sys.path.insert(0, backup_dir)
+
+        from src.sub_operation import get_week_num as backup_get_week_num
+        result = backup_get_week_num(dat)
+
+        # 恢复工作目录
+        os.chdir(current_dir)
+        return result
+
+    except Exception as e:
+        print(f"使用备份周数计算失败: {e}")
+        # 恢复工作目录
+        try:
+            os.chdir(current_dir)
+        except:
+            pass
+        return 0
+    finally:
+        # 确保清理路径
+        if backup_dir in sys.path:
+            sys.path.remove(backup_dir)
+
+
+def wk_name(dt: datetime = datetime.today()) -> str:
+    """生成周页面名称"""
+    import sys
+    import os
+    current_dir = os.getcwd()
+    backup_dir = os.path.join(current_dir, 'notion_tools_backup')
+
+    try:
+        os.chdir(backup_dir)
+        sys.path.insert(0, backup_dir)
+
+        from src.sub_operation import wk_name as backup_wk_name
+        result = backup_wk_name(dt)
+
+        # 恢复工作目录
+        os.chdir(current_dir)
+        return result
+
+    except Exception as e:
+        print(f"使用备份周名称生成失败: {e}")
+        # 恢复工作目录
+        try:
+            os.chdir(current_dir)
+        except:
+            pass
+        return "Week0 Unknown"
+    finally:
+        # 确保清理路径
+        if backup_dir in sys.path:
+            sys.path.remove(backup_dir)
+
+
+def date_btw(dt: datetime, stt: datetime, end: datetime) -> bool:
+    """检查日期是否在指定范围内（包含结束日期的前一天）"""
+    end = end + timedelta(days=1, seconds=-1)
+    return stt <= dt <= end
+
+
+def certain_weekday(dat: datetime, wkd: int) -> datetime:
+    """获取指定日期所在周的第wkd天（0=周一，6=周日）"""
+    td = timedelta(days=dat.weekday() - wkd)
+    return dat - td

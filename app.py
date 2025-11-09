@@ -44,6 +44,8 @@ COMMAND_ROUTER = {
     '#daily': notion_handler.handle_notion_command,
     '#add_daily': notion_handler.handle_notion_command,
     '#update_cover': notion_handler.handle_notion_command,
+    '#weekly': notion_handler.handle_notion_command,
+    '#add_weekly': notion_handler.handle_notion_command,
 
     # @ 相关命令
     '#at': at_handler.handle_at_command,

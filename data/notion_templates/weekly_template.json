@@ -1,0 +1,29 @@
+{
+  "parent": {
+    "type": "database_id",
+    "database_id": "WEEKLY_DATABASE_ID_PLACEHOLDER"
+  },
+  "properties": {
+    "Date": {
+      "type": "date",
+      "date": {
+        "start": "START_DATE_PLACEHOLDER",
+        "end": "END_DATE_PLACEHOLDER",
+        "time_zone": null
+      }
+    },
+    "Name": {
+      "type": "title",
+      "title": [
+        {
+          "type": "text",
+          "text": {
+            "content": "WEEK_NAME_PLACEHOLDER",
+            "link": null
+          },
+          "href": null
+        }
+      ]
+    }
+  }
+}

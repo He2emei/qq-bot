@@ -104,6 +104,105 @@ def handle_update_cover_command(event_data):
 
 
 
+def handle_weekly_command(event_data):
+    """处理 #weekly 命令，获取本周周记内容"""
+    try:
+        from services.notion_service import weekly_manager
+        from utils.notion_utils import wk_name
+
+        # 获取当前周名称
+        week_name = wk_name()
+        if not week_name:
+            message = "❌ 无法获取当前周信息，请检查学期配置"
+            group_id = event_data.get('group_id')
+            if group_id:
+                send_group_message(group_id, message)
+            return
+
+        # 获取周页面
+        week_page = weekly_manager.get_week_page(week_name)
+
+        if not week_page:
+            # 如果周页面不存在，尝试创建
+            try:
+                success = weekly_manager.check_and_create_current_week()
+                if success:
+                    week_page = weekly_manager.get_week_page(week_name)
+                    message = f"📅 本周周记页面已创建！\n周名称: {week_name}"
+                else:
+                    message = "❌ 创建本周周记页面失败"
+            except Exception as e:
+                message = f"❌ 创建本周周记失败: {str(e)}"
+        else:
+            # 获取页面内容
+            try:
+                page_content = notion_service.get_page_children(week_page["id"])
+                blocks = page_content.get("results", [])
+
+                if blocks:
+                    # 处理页面内容并转换为文本
+                    content_text = process_notion_blocks(blocks)
+                    message = f"📅 本周周记内容:\n\n{content_text}"
+                else:
+                    message = f"📅 本周周记页面为空，快去添加一些内容吧！\n周名称: {week_name}"
+
+            except Exception as e:
+                message = f"❌ 获取周记内容失败: {str(e)}"
+
+        # 发送消息到群
+        group_id = event_data.get('group_id')
+        if group_id:
+            send_group_message(group_id, message)
+
+    except Exception as e:
+        error_msg = f"❌ 处理周记命令时出错: {str(e)}"
+        print(error_msg)
+        group_id = event_data.get('group_id')
+        if group_id:
+            send_group_message(group_id, error_msg)
+
+
+def handle_add_weekly_command(event_data):
+    """处理 #add_weekly 命令，创建本周周记页面"""
+    try:
+        from services.notion_service import weekly_manager
+        from utils.notion_utils import wk_name
+
+        # 获取当前周名称
+        week_name = wk_name()
+        if not week_name:
+            message = "❌ 无法获取当前周信息，请检查学期配置"
+            group_id = event_data.get('group_id')
+            if group_id:
+                send_group_message(group_id, message)
+            return
+
+        # 检查周页面是否已存在
+        existing_page = weekly_manager.get_week_page(week_name)
+
+        if existing_page:
+            message = f"✅ 本周周记页面已存在！\n周名称: {week_name}"
+        else:
+            # 创建周页面
+            success = weekly_manager.check_and_create_current_week()
+            if success:
+                message = f"✅ 本周周记页面创建成功！\n周名称: {week_name}"
+            else:
+                message = "❌ 创建本周周记页面失败"
+
+        # 发送消息到群
+        group_id = event_data.get('group_id')
+        if group_id:
+            send_group_message(group_id, message)
+
+    except Exception as e:
+        error_msg = f"❌ 创建本周周记失败: {str(e)}"
+        print(error_msg)
+        group_id = event_data.get('group_id')
+        if group_id:
+            send_group_message(group_id, error_msg)
+
+
 def handle_notion_command(event_data):
     """处理所有 Notion 相关命令的主入口"""
     message_text = event_data.get('message', '')
@@ -114,6 +213,10 @@ def handle_notion_command(event_data):
         handle_add_daily_command(event_data)
     elif message_text.startswith('#update_cover'):
         handle_update_cover_command(event_data)
+    elif message_text.startswith('#weekly'):
+        handle_weekly_command(event_data)
+    elif message_text.startswith('#add_weekly'):
+        handle_add_weekly_command(event_data)
     else:
         # 未知命令
         group_id = event_data.get('group_id')
@@ -123,6 +226,9 @@ def handle_notion_command(event_data):
                 "🗓️ 日记功能:\n"
                 "#daily - 查看今日日记内容\n"
                 "#add_daily - 创建今日日记页面\n"
-                "#update_cover - 更新今日日记封面为Bing壁纸"
+                "#update_cover - 更新今日日记封面为Bing壁纸\n\n"
+                "📅 周记功能:\n"
+                "#weekly - 查看本周周记内容\n"
+                "#add_weekly - 创建本周周记页面"
             )
             send_group_message(group_id, help_msg)

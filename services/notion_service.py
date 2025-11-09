@@ -24,16 +24,20 @@ class NotionService:
 
     def _init_headers(self):
         """初始化请求头，根据token类型选择不同的token"""
+        from dotenv import load_dotenv
+        load_dotenv()
+
+        import os
         if self.token_type == "diary":
-            token = config.NOTION_TOKEN_DIARY
+            token = os.getenv("NOTION_TOKEN_DIARY", config.NOTION_TOKEN_DIARY)
         else:
-            token = config.NOTION_TOKEN
+            token = os.getenv("NOTION_TOKEN", config.NOTION_TOKEN)
 
         self.headers = {
             "Authorization": f"Bearer {token}",
             "notion-version": config.NOTION_VERSION
         }
-        print(self.headers)
+        # print(self.headers)  # 注释掉调试输出
 
     def _make_request_with_retry(self, method: str, url: str, **kwargs) -> requests.Response:
         """带重试机制的请求方法"""
@@ -262,6 +266,106 @@ class NotionDailyManager:
             return False
 
 
+class NotionWeeklyManager:
+    """每周周记管理器"""
+
+    def __init__(self):
+        self.notion_service = NotionService(token_type="diary")
+
+    def get_week_filter(self, week_name: str) -> Dict[str, Any]:
+        """获取周页面过滤器"""
+        return {
+            "property": "Name",
+            "rich_text": {
+                "equals": week_name
+            }
+        }
+
+    def get_week_page(self, week_name: str) -> Optional[Dict[str, Any]]:
+        """获取指定周的页面"""
+        try:
+            filter_json = self.get_week_filter(week_name)
+            result = self.notion_service.query_database("Weekly Dairy 2.0", filter_json)
+            if result["results"]:
+                return result["results"][0]
+        except Exception as e:
+            print(f"获取周页面失败: {e}")
+
+        return None
+
+    def add_week_page(self, week_name: str, start_date: datetime, end_date: datetime) -> Dict[str, Any]:
+        """添加周页面"""
+        # 直接使用daily_manager中的方法，避免重复导入
+        date_dt2nt = daily_manager.date_dt2nt
+
+        page_data = {
+            "properties": {
+                "Date": {
+                    "type": "date",
+                    "date": {
+                        "start": date_dt2nt(start_date),
+                        "end": date_dt2nt(end_date)
+                    }
+                },
+                "Name": {
+                    "type": "title",
+                    "title": [
+                        {
+                            "type": "text",
+                            "text": {
+                                "content": week_name,
+                                "link": None
+                            },
+                            "href": None
+                        }
+                    ]
+                }
+            }
+        }
+
+        try:
+            result = self.notion_service.add_page("Weekly Dairy 2.0", page_data)
+            print(f"添加周页面成功: {week_name}")
+            return result
+        except Exception as e:
+            print(f"添加周页面失败: {e}")
+            raise
+
+    def check_and_create_current_week(self) -> bool:
+        """检查并创建当前周页面"""
+        from utils.notion_utils import get_term, get_week_num, wk_name, certain_weekday
+
+        try:
+            # 获取当前学期和周信息
+            current_term = get_term()
+            if not current_term:
+                print("无法获取当前学期信息")
+                return False
+
+            week_num = get_week_num()
+            week_name = wk_name()
+
+            # 检查周页面是否已存在
+            existing_page = self.get_week_page(week_name)
+            if existing_page:
+                print(f"周页面已存在: {week_name}")
+                return True
+
+            # 计算周的开始和结束日期
+            term_start = current_term['start']
+            week_start = term_start + timedelta(days=(week_num - 1) * 7)
+            week_end = week_start + timedelta(days=6)
+
+            # 创建周页面
+            self.add_week_page(week_name, week_start, week_end)
+            return True
+
+        except Exception as e:
+            print(f"检查并创建当前周页面失败: {e}")
+            return False
+
+
 # 全局服务实例
 notion_service = NotionService()
 daily_manager = NotionDailyManager()
+weekly_manager = NotionWeeklyManager()

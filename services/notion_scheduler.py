@@ -19,9 +19,13 @@ def add_today_job():
 def add_next_week_job():
     """添加下周的页面（如果需要的话）"""
     try:
-        print(f"[{datetime.now()}] 检查是否需要创建下周页面...")
-        # 这里可以添加创建周页面的逻辑
-        print(f"[{datetime.now()}] 下周页面检查完成")
+        print(f"[{datetime.now()}] 检查是否需要创建当前周页面...")
+        from services.notion_service import weekly_manager
+        success = weekly_manager.check_and_create_current_week()
+        if success:
+            print(f"[{datetime.now()}] 当前周页面检查/创建完成")
+        else:
+            print(f"[{datetime.now()}] 当前周页面处理失败")
     except Exception as e:
         print(f"[{datetime.now()}] 下周页面处理失败: {e}")
 

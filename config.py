@@ -50,7 +50,9 @@ NOTION_VERSION = "2022-06-28"
 
 # Notion 数据库配置
 NOTION_DATABASES = {
-    'daily': '32ace5e970b647e784d4d96ced0b2528'
+    'daily': '32ace5e970b647e784d4d96ced0b2528',      # Daily Dairy 2.0
+    'weekly': 'b933933868254b769bf96e3768b1dbda',    # Weekly Dairy 2.0
+    'terms': 'ec2a978cd73e43d49ddf41693e68fc15',     # Terms Dairy 2.0
 }
 
 # Notion 代理配置 (如果需要)
