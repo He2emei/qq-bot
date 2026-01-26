@@ -9,6 +9,8 @@ import config
 # 导入所有处理器
 from handlers import aql_handler, game_handler, notion_handler, at_handler, faq_handler#, ai_handler, general_handler
 
+from utils.api_utils import send_group_message
+
 # 启动 Notion 定时任务调度器
 try:
     from services.notion_scheduler import start_notion_scheduler
@@ -114,7 +116,12 @@ def receive_event():
 
     print(f"Received from group {group_id}: {message_text}")
 
-    # 调试信息：显示前缀匹配
+    # 特定群聊的特定回复
+    if group_id == 460880818 and message_text == "好厉害":
+        send_group_message(group_id, "我爱你")
+        return "Special reply sent", 200
+ 
+     # 调试信息：显示前缀匹配
     for command in COMMAND_ROUTER:
         if message_text.startswith(command):
             print(f"Command matched: '{command}' for message: '{message_text}'")
