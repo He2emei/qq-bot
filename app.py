@@ -121,8 +121,11 @@ def receive_event():
         send_group_message(group_id, "我爱你")
         return "Special reply sent", 200
  
-     # 调试信息：显示前缀匹配
-    for command in COMMAND_ROUTER:
+    # 按照命令长度从长到短排序，防止前缀遮蔽 (如 '#at' 拦截 '#atls')
+    sorted_commands = sorted(COMMAND_ROUTER.items(), key=lambda x: len(x[0]), reverse=True)
+
+    # 调试信息：显示前缀匹配
+    for command, _ in sorted_commands:
         if message_text.startswith(command):
             print(f"Command matched: '{command}' for message: '{message_text}'")
             break
@@ -141,7 +144,7 @@ def receive_event():
         event_data['message'] = message_text
 
     # 根据命令前缀分发到对应的处理器
-    for command, handler_func in COMMAND_ROUTER.items():
+    for command, handler_func in sorted_commands:
         if message_text.startswith(command):
             # 找到匹配的命令，调用处理器并停止查找
             try:

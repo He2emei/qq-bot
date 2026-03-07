@@ -18,14 +18,20 @@ def handle_at_command(event):
     nick_dic = at_data['nickname']
 
     qq_ls = []
+    visited_nicks = set()
     while at_txt:
-        e = at_txt[0]
+        e = at_txt.pop(0)
         if e in qq_dic:
             if qq_dic[e] not in qq_ls:
                 qq_ls.append(qq_dic[e])
         elif e in nick_dic:
-            at_txt.extend(nick_dic[e])
-        del at_txt[0]
+            if e not in visited_nicks:
+                visited_nicks.add(e)
+                at_txt.extend(nick_dic[e])
+        elif e.isdigit():
+            qq_int = int(e)
+            if qq_int not in qq_ls:
+                qq_ls.append(qq_int)
 
     qq_msg = ''
     for e in qq_ls:
@@ -69,10 +75,18 @@ def handle_at_list(event):
     group_id = event['group_id']
     try:
         at_data = load_json(config.DATA_PATHS['at'])
-        if 'nickname' in at_data:
-            send_group_message(group_id, f"当前昵称配置：{at_data['nickname']}")
+        if 'nickname' in at_data and 'QQ' in at_data:
+            msg = "【个人别名映射】\n"
+            for nick, qq in at_data['QQ'].items():
+                msg += f"{nick}: {qq}\n"
+            
+            msg += "\n【群组配置】\n"
+            for group, members in at_data['nickname'].items():
+                msg += f"{group}: {', '.join(members)}\n"
+            
+            send_group_message(group_id, msg.strip())
         else:
-            send_group_message(group_id, "昵称配置数据格式错误")
+            send_group_message(group_id, "配置数据格式错误")
     except Exception as e:
         print(f"#atls 数据加载失败: {e}")
         send_group_message(group_id, "加载数据时出错，请稍后再试")
@@ -96,19 +110,27 @@ def handle_at_delete(event):
 
     if len(nk_txt) > 1:
         # 删除指定QQ号
+        success_removed = []
+        failed_removed = []
         for qq in nk_txt[1:]:
             try:
                 at_data["nickname"][nickname].remove(qq)
-                msg = f"已从昵称 {nickname} 中除去 {nk_txt[1:]}"
+                success_removed.append(qq)
             except ValueError:
-                msg = f"昵称 {nickname} 中未找到 {qq}"
+                failed_removed.append(qq)
+        
+        msg = f"已针对昵称 {nickname} 执行删除操作。"
+        if success_removed:
+            msg += f"\n成功移除: {', '.join(success_removed)}"
+        if failed_removed:
+            msg += f"\n未找到: {', '.join(failed_removed)}"
     else:
         # 删除整个昵称
         try:
             del at_data["nickname"][nickname]
-            msg = f"已删除昵称 {nickname}"
+            msg = f"已删除群组/昵称 {nickname}"
         except KeyError:
-            msg = f"未找到昵称 {nickname}"
+            msg = f"未找到群组/昵称 {nickname}"
 
     dump_json(config.DATA_PATHS['at'], at_data)
     send_group_message(group_id, msg)
