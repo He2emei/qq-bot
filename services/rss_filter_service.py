@@ -42,6 +42,7 @@ class RssNewsItem:
 class RssFilterResult:
     entry: RssEntry
     keywords: List[str]
+    all_items: List[RssNewsItem]
     important_items: List[RssNewsItem]
     other_items: List[RssNewsItem]
 
@@ -155,6 +156,7 @@ def classify_rss_entry(entry: RssEntry, keywords: List[str] = None) -> RssFilter
     return RssFilterResult(
         entry=entry,
         keywords=active_keywords,
+        all_items=items,
         important_items=important_items,
         other_items=other_items,
     )

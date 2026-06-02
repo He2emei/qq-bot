@@ -70,3 +70,8 @@ NOTION_DATA_PATHS = {
 # === FAQ 配置 ===
 FAQ_DATABASE_PATH = 'data/faq.db'           # FAQ数据库路径
 FAQ_IMAGES_DIR = 'data/faq_images/'         # 图片存储目录
+
+# === RSS 配置 ===
+RSS_FEED_URL = 'https://imjuya.github.io/juya-ai-daily/rss.xml'
+RSS_SOURCE_NAME = '橘鸦AI早报'
+RSS_SOURCE_URL = 'https://imjuya.github.io/juya-ai-daily/'

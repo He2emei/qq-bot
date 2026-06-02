@@ -63,6 +63,7 @@ COMMAND_ROUTER = {
     '#not help': faq_handler.handle_faq_command,
 
     # RSS 相关命令
+    '#rssdaily': rss_handler.handle_rss_daily_command,
     '#rsskw': rss_handler.handle_rss_keyword_command,
 
     # 帮助命令

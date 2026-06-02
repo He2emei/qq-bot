@@ -34,6 +34,28 @@ def send_group_message(group_id, message):
     except requests.RequestException as e:
         print(f"发送消息时发生网络异常: {e}")
 
+def send_group_forward_message(group_id, messages):
+    """发送群合并转发消息"""
+    url = f"{config.NAPCAT_BASE_URL}/send_group_forward_msg"
+    payload = {
+        "group_id": group_id,
+        "messages": messages,
+    }
+    try:
+        response = requests.post(url, json=payload, verify=False, timeout=20)
+        if response.status_code == 200:
+            print(f"向群 {group_id} 发送合并转发消息成功")
+            try:
+                return response.json()
+            except ValueError:
+                return {"raw": response.text}
+        else:
+            print(f"向群 {group_id} 发送合并转发消息失败: {response.status_code}, {response.text}")
+    except requests.RequestException as e:
+        print(f"发送合并转发消息时发生网络异常: {e}")
+
+    return None
+
 def get_verification_code(token):
     """从云码平台获取验证码 (原方法1)"""
     data = {'token': token}

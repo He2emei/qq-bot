@@ -1,6 +1,35 @@
 # handlers/rss_handler.py
-from services.rss_filter_service import rss_keyword_store
-from utils.api_utils import send_group_message
+import config
+from services.rss_display_service import build_other_news_forward_nodes, format_important_news_message
+from services.rss_filter_service import classify_rss_entry, rss_keyword_store
+from services.rss_service import fetch_rss_entries
+from utils.api_utils import send_group_forward_message, send_group_message
+
+
+def handle_rss_daily_command(event):
+    """Fetch latest RSS entry and send the basic daily AI news display."""
+    group_id = event["group_id"]
+    bot_user_id = event.get("self_id", 0)
+
+    try:
+        entries = fetch_rss_entries(config.RSS_FEED_URL, limit=1)
+        if not entries:
+            send_group_message(group_id, "RSS源暂未获取到内容。")
+            return
+
+        result = classify_rss_entry(entries[0])
+        important_message = format_important_news_message(result)
+        send_group_message(group_id, important_message)
+
+        forward_nodes = build_other_news_forward_nodes(
+            result,
+            bot_user_id=bot_user_id,
+            bot_nickname=config.RSS_SOURCE_NAME,
+        )
+        send_group_forward_message(group_id, forward_nodes)
+    except Exception as e:
+        print(f"发送RSS早报失败: {e}")
+        send_group_message(group_id, f"发送RSS早报失败: {e}")
 
 
 def handle_rss_keyword_command(event):
