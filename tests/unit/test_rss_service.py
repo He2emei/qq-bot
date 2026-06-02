@@ -17,7 +17,7 @@ class FakeResponse:
 class RssServiceTest(unittest.TestCase):
     def test_fetch_rss_entries_normalizes_items(self):
         rss_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0">
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Example Feed</title>
     <item>
@@ -26,6 +26,11 @@ class RssServiceTest(unittest.TestCase):
       <guid>first-guid</guid>
       <pubDate>Tue, 02 Jun 2026 01:44:04 +0000</pubDate>
       <description>First summary</description>
+      <content:encoded><![CDATA[
+        <h1>Full report</h1>
+        <p>Full body with <a href="https://example.com/source">source</a>.</p>
+        <p><img src="https://example.com/image.png" /></p>
+      ]]></content:encoded>
     </item>
     <item>
       <title>Second item</title>
@@ -43,6 +48,10 @@ class RssServiceTest(unittest.TestCase):
         self.assertEqual(entries[0].link, "https://example.com/first")
         self.assertEqual(entries[0].published, "Tue, 02 Jun 2026 01:44:04 +0000")
         self.assertEqual(entries[0].summary, "First summary")
+        self.assertIn("<h1>Full report</h1>", entries[0].content_html)
+        self.assertIn("Full report", entries[0].content_text)
+        self.assertIn("source (https://example.com/source)", entries[0].content_text)
+        self.assertIn("[图片] https://example.com/image.png", entries[0].content_text)
         self.assertEqual(entries[0].entry_id, "first-guid")
 
     def test_fetch_rss_entries_raises_on_request_error(self):
