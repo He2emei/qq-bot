@@ -35,7 +35,8 @@ DATA_PATHS = {
     'help': 'data/help.json',
     'at': 'data/at.json',
     'auth_list': 'data/authenticatorList.json',
-    'memory': 'data/memory.json'
+    'memory': 'data/memory.json',
+    'rss_keywords': 'data/rss_keywords.json'
 }
 
 # Flask 服务配置

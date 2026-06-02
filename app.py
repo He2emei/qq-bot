@@ -7,7 +7,7 @@ load_dotenv()
 import config
 
 # 导入所有处理器
-from handlers import aql_handler, game_handler, notion_handler, at_handler, faq_handler#, ai_handler, general_handler
+from handlers import aql_handler, game_handler, notion_handler, at_handler, faq_handler, rss_handler#, ai_handler, general_handler
 
 from utils.api_utils import send_group_message
 
@@ -61,6 +61,9 @@ COMMAND_ROUTER = {
     '#not delete': faq_handler.handle_faq_command,
     '#not list': faq_handler.handle_faq_command,
     '#not help': faq_handler.handle_faq_command,
+
+    # RSS 相关命令
+    '#rsskw': rss_handler.handle_rss_keyword_command,
 
     # 帮助命令
     '#help': game_handler.handle_help_command,
