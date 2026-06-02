@@ -1,4 +1,7 @@
 import requests
+import json
+import uuid
+
 try:
     from bs4 import BeautifulSoup
     HAS_BS4 = True
@@ -18,8 +21,66 @@ except ImportError:
             pass
 import config # 导入配置
 
+try:
+    import websockets.sync.client
+    HAS_WEBSOCKETS_SYNC = True
+except ImportError:
+    HAS_WEBSOCKETS_SYNC = False
+
+
+def _napcat_ws_request(action, params, timeout=20):
+    if not getattr(config, "NAPCAT_WS_URL", ""):
+        return None
+
+    if not HAS_WEBSOCKETS_SYNC:
+        print("websockets.sync.client 不可用，无法使用 NapCat WebSocket")
+        return None
+
+    headers = {}
+    if getattr(config, "NAPCAT_ACCESS_TOKEN", ""):
+        headers["Authorization"] = f"Bearer {config.NAPCAT_ACCESS_TOKEN}"
+
+    payload = {
+        "action": action,
+        "params": params,
+        "echo": str(uuid.uuid4()),
+    }
+
+    try:
+        with websockets.sync.client.connect(
+            config.NAPCAT_WS_URL,
+            additional_headers=headers,
+            open_timeout=timeout,
+            close_timeout=5,
+        ) as websocket:
+            websocket.send(json.dumps(payload, ensure_ascii=False))
+            while True:
+                raw_message = websocket.recv(timeout=timeout)
+                data = json.loads(raw_message)
+                if data.get("echo") == payload["echo"]:
+                    if data.get("status") == "ok":
+                        return data
+                    print(f"NapCat WebSocket action失败: {action}, {data}")
+                    return None
+    except Exception as e:
+        print(f"NapCat WebSocket请求失败: {action} - {e}")
+        return None
+
+
 def send_group_message(group_id, message):
     """发送群聊消息"""
+    ws_result = _napcat_ws_request(
+        "send_group_msg",
+        {
+            "group_id": group_id,
+            "message": message,
+        },
+        timeout=10,
+    )
+    if ws_result:
+        print(f"向群 {group_id} 发送消息成功")
+        return ws_result
+
     url = f"{config.NAPCAT_BASE_URL}/send_group_msg"
     params = {
         "group_id": group_id,
@@ -33,9 +94,22 @@ def send_group_message(group_id, message):
             print(f"向群 {group_id} 发送消息失败: {response.status_code}, {response.text}")
     except requests.RequestException as e:
         print(f"发送消息时发生网络异常: {e}")
+    return None
 
 def send_group_forward_message(group_id, messages):
     """发送群合并转发消息"""
+    ws_result = _napcat_ws_request(
+        "send_group_forward_msg",
+        {
+            "group_id": group_id,
+            "messages": messages,
+        },
+        timeout=20,
+    )
+    if ws_result:
+        print(f"向群 {group_id} 发送合并转发消息成功")
+        return ws_result
+
     url = f"{config.NAPCAT_BASE_URL}/send_group_forward_msg"
     payload = {
         "group_id": group_id,

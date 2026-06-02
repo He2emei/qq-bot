@@ -1,8 +1,13 @@
 # config.py
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # NapCat QQ机器人框架配置
-NAPCAT_BASE_URL = "http://127.0.0.1:23333"
+NAPCAT_BASE_URL = "http://tai261.xjtumc.com:23334"
+NAPCAT_WS_URL = os.getenv("NAPCAT_WS_URL", "ws://tai261.xjtumc.com:23334")
+NAPCAT_ACCESS_TOKEN = os.getenv("NAPCAT_ACCESS_TOKEN", "")
 
 # 外部服务URL
 JJL_BASE_URL = 'http://yunma.xyq5.top/'
