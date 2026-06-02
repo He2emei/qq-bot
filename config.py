@@ -36,7 +36,8 @@ DATA_PATHS = {
     'at': 'data/at.json',
     'auth_list': 'data/authenticatorList.json',
     'memory': 'data/memory.json',
-    'rss_keywords': 'data/rss_keywords.json'
+    'rss_keywords': 'data/rss_keywords.json',
+    'rss_state': 'data/rss_state.json'
 }
 
 # Flask 服务配置
@@ -75,3 +76,6 @@ FAQ_IMAGES_DIR = 'data/faq_images/'         # 图片存储目录
 RSS_FEED_URL = 'https://imjuya.github.io/juya-ai-daily/rss.xml'
 RSS_SOURCE_NAME = '橘鸦AI早报'
 RSS_SOURCE_URL = 'https://imjuya.github.io/juya-ai-daily/'
+RSS_PUSH_GROUP_IDS = [GROUP_IDS['default']]
+RSS_POLL_INTERVAL_SECONDS = 60
+RSS_FORWARD_USER_ID = int(os.getenv("RSS_FORWARD_USER_ID", "1919447403"))

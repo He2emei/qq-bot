@@ -18,6 +18,13 @@ try:
 except Exception as e:
     print(f"启动 Notion 调度器失败: {e}")
 
+# 启动 RSS 更新检查调度器
+try:
+    from services.rss_scheduler import start_rss_scheduler
+    start_rss_scheduler()
+except Exception as e:
+    print(f"启动 RSS 调度器失败: {e}")
+
 app = Flask(__name__)
 
 # 命令路由器：将命令前缀映射到处理函数
