@@ -11,7 +11,7 @@ GET /send_group_msg
 POST /send_group_forward_msg
 ```
 
-但当前 NapCat 端点 `tai261.xjtumc.com:23334` 是 WebSocket 端口，普通 HTTP 请求会返回：
+但当前 NapCat 端口是 WebSocket 端口，普通 HTTP 请求会返回：
 
 ```text
 426 Upgrade Required
@@ -24,14 +24,14 @@ POST /send_group_forward_msg
 `config.py` 新增：
 
 ```python
-NAPCAT_WS_URL = os.getenv("NAPCAT_WS_URL", "ws://tai261.xjtumc.com:23334")
+NAPCAT_WS_URL = os.getenv("NAPCAT_WS_URL", "ws://127.0.0.1:23334")
 NAPCAT_ACCESS_TOKEN = os.getenv("NAPCAT_ACCESS_TOKEN", "")
 ```
 
 `.env.example` 新增：
 
 ```text
-NAPCAT_WS_URL=ws://tai261.xjtumc.com:23334
+NAPCAT_WS_URL=ws://127.0.0.1:23334
 NAPCAT_ACCESS_TOKEN=your_napcat_access_token_here
 ```
 
@@ -96,3 +96,5 @@ good = True
 ## 注意
 
 测试时使用了本地 `.env` 中的 `NAPCAT_ACCESS_TOKEN`。该密钥不写入仓库。
+
+部署到 `tai261.xjtumc.com` 时，QQ Bot 与 NapCat 在同一台服务器上，因此默认使用 `127.0.0.1:23334`。本地开发如果需要访问远程 NapCat，可在本地 `.env` 中覆盖为远程地址。

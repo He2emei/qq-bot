@@ -67,7 +67,7 @@ def check_and_push_latest_rss(force: bool = False) -> RssPushResult:
     entry = entries[0]
     last_entry_id = rss_push_state_store.get_last_entry_id()
     if not force and last_entry_id == entry.entry_id:
-        print(f"RSS无新条目，跳过推送: {entry.entry_id}")
+        print(f"RSS无新条目，跳过推送: {entry.entry_id}", flush=True)
         return RssPushResult(False, entry.entry_id, entry.title, [])
 
     push_rss_entry(entry, config.RSS_PUSH_GROUP_IDS)
