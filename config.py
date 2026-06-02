@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # NapCat QQ机器人框架配置
-NAPCAT_BASE_URL = "http://tai261.xjtumc.com:23334"
-NAPCAT_WS_URL = os.getenv("NAPCAT_WS_URL", "ws://tai261.xjtumc.com:23334")
+NAPCAT_BASE_URL = os.getenv("NAPCAT_BASE_URL", "http://127.0.0.1:23334")
+NAPCAT_WS_URL = os.getenv("NAPCAT_WS_URL", "ws://127.0.0.1:23334")
 NAPCAT_ACCESS_TOKEN = os.getenv("NAPCAT_ACCESS_TOKEN", "")
 
 # 外部服务URL
