@@ -19,7 +19,9 @@ GROUP_IDS = {
     'haochang': 1011696295,
     'game': 491372741,
     'me': 1022453604,
-    'love': 460880818
+    'love': 460880818,
+    'ai_xjtu': 1105591264,
+    'ai_sjtu': 962289836
 }
 
 # 监控所有已配置的群聊
@@ -76,6 +78,10 @@ FAQ_IMAGES_DIR = 'data/faq_images/'         # 图片存储目录
 RSS_FEED_URL = 'https://imjuya.github.io/juya-ai-daily/rss.xml'
 RSS_SOURCE_NAME = '橘鸦AI早报'
 RSS_SOURCE_URL = 'https://imjuya.github.io/juya-ai-daily/'
-RSS_PUSH_GROUP_IDS = [GROUP_IDS['default']]
+RSS_PUSH_GROUPS = {
+    GROUP_IDS['ai_xjtu']: 'AI-xjtu',
+    GROUP_IDS['ai_sjtu']: 'AI-sjtu',
+}
+RSS_PUSH_GROUP_IDS = list(RSS_PUSH_GROUPS.keys())
 RSS_POLL_INTERVAL_SECONDS = 60
 RSS_FORWARD_USER_ID = int(os.getenv("RSS_FORWARD_USER_ID", "1919447403"))
