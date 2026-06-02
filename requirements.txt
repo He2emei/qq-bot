@@ -1,5 +1,6 @@
 APScheduler==3.10.4
 beautifulsoup4==4.13.5
+feedparser==6.0.12
 Flask==3.1.2
 openai==1.101.0
 pyotp==2.9.0
