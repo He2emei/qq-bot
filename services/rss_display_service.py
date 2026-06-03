@@ -6,7 +6,7 @@ from typing import List, Optional
 from bs4 import BeautifulSoup
 
 import config
-from services.rss_filter_service import RssFilterResult, SOURCE_IMPORTANT_CATEGORY
+from services.rss_filter_service import RssFilterResult
 
 
 WEEKDAY_NAMES = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"]
@@ -27,7 +27,7 @@ def format_important_news_message(result: RssFilterResult) -> str:
 
 
 def build_other_news_forward_nodes(result: RssFilterResult, bot_user_id: int, bot_nickname: str = None) -> List[dict]:
-    """Build custom forward-message nodes for non-headline RSS categories."""
+    """Build custom forward-message nodes for RSS categories."""
     nickname = bot_nickname or config.RSS_SOURCE_NAME
     nodes = [_make_forward_node(bot_user_id, nickname, _format_source_info(result))]
 
@@ -80,8 +80,6 @@ def _group_items_by_category(result: RssFilterResult) -> OrderedDict:
     grouped = OrderedDict()
     for item in result.all_items:
         category = item.category or "未分类"
-        if category == SOURCE_IMPORTANT_CATEGORY:
-            continue
         grouped.setdefault(category, []).append(item)
     return grouped
 

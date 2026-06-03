@@ -16,25 +16,29 @@ class RssDisplayServiceTest(unittest.TestCase):
         self.assertIn("3. 关键词重点标题", message)
         self.assertNotIn("2. 模型发布标题", message)
 
-    def test_build_other_news_forward_nodes_groups_categories_without_headlines(self):
+    def test_build_other_news_forward_nodes_groups_categories_with_headlines(self):
         result = _sample_filter_result()
 
         nodes = build_other_news_forward_nodes(result, bot_user_id=1919447403, bot_nickname="AI早报")
 
-        self.assertEqual(len(nodes), 3)
+        self.assertEqual(len(nodes), 4)
         self.assertEqual(nodes[0]["type"], "node")
         source_text = nodes[0]["data"]["content"][0]["data"]["text"]
         self.assertIn("原文链接：https://example.com/issue", source_text)
         self.assertIn("哔哩哔哩视频版：https://www.bilibili.com/video/BV123", source_text)
 
-        model_text = nodes[1]["data"]["content"][0]["data"]["text"]
+        headline_text = nodes[1]["data"]["content"][0]["data"]["text"]
+        self.assertIn("【要闻】", headline_text)
+        self.assertIn("#1 要闻标题", headline_text)
+        self.assertIn("https://example.com/1", headline_text)
+
+        model_text = nodes[2]["data"]["content"][0]["data"]["text"]
         self.assertIn("【模型发布】", model_text)
         self.assertIn("#2 模型发布标题", model_text)
 
-        dev_text = nodes[2]["data"]["content"][0]["data"]["text"]
+        dev_text = nodes[3]["data"]["content"][0]["data"]["text"]
         self.assertIn("【开发生态】", dev_text)
         self.assertIn("#3 关键词重点标题", dev_text)
-        self.assertNotIn("要闻标题", model_text + dev_text)
 
 
 def _sample_filter_result():
