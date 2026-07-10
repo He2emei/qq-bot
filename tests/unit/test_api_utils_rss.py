@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from utils.api_utils import send_group_message
+from utils.api_utils import send_group_forward_message, send_group_message
 
 
 class ApiUtilsRssTest(unittest.TestCase):
@@ -13,6 +13,24 @@ class ApiUtilsRssTest(unittest.TestCase):
         request_get.return_value = response
 
         self.assertEqual(send_group_message(11, "hello"), {"raw": "ok"})
+
+    @patch("utils.api_utils._napcat_ws_request", return_value=None)
+    @patch("utils.api_utils.requests.get")
+    def test_http_onebot_failure_is_not_reported_as_sent(self, request_get, _ws):
+        response = Mock(status_code=200, text="failed")
+        response.json.return_value = {"status": "failed", "retcode": 100}
+        request_get.return_value = response
+
+        self.assertIsNone(send_group_message(11, "hello"))
+
+    @patch("utils.api_utils._napcat_ws_request", return_value=None)
+    @patch("utils.api_utils.requests.post")
+    def test_forward_onebot_failure_is_not_reported_as_sent(self, request_post, _ws):
+        response = Mock(status_code=200, text="failed")
+        response.json.return_value = {"status": "failed", "retcode": 100}
+        request_post.return_value = response
+
+        self.assertIsNone(send_group_forward_message(11, []))
 
 
 if __name__ == "__main__":

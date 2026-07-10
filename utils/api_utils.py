@@ -89,11 +89,11 @@ def send_group_message(group_id, message):
     try:
         response = requests.get(url, params=params, verify=False, timeout=10)
         if response.status_code == 200:
+            result = _parse_http_onebot_response(response, "send_group_msg")
+            if result is None:
+                return None
             print(f"向群 {group_id} 发送消息成功")
-            try:
-                return response.json()
-            except ValueError:
-                return {"raw": response.text}
+            return result
         else:
             print(f"向群 {group_id} 发送消息失败: {response.status_code}, {response.text}")
     except requests.RequestException as e:
@@ -122,17 +122,32 @@ def send_group_forward_message(group_id, messages):
     try:
         response = requests.post(url, json=payload, verify=False, timeout=20)
         if response.status_code == 200:
+            result = _parse_http_onebot_response(response, "send_group_forward_msg")
+            if result is None:
+                return None
             print(f"向群 {group_id} 发送合并转发消息成功")
-            try:
-                return response.json()
-            except ValueError:
-                return {"raw": response.text}
+            return result
         else:
             print(f"向群 {group_id} 发送合并转发消息失败: {response.status_code}, {response.text}")
     except requests.RequestException as e:
         print(f"发送合并转发消息时发生网络异常: {e}")
 
     return None
+
+
+def _parse_http_onebot_response(response, action):
+    try:
+        payload = response.json()
+    except ValueError:
+        return {"raw": response.text}
+
+    if isinstance(payload, dict):
+        status = payload.get("status")
+        retcode = payload.get("retcode")
+        if (status is not None and status != "ok") or (retcode is not None and retcode != 0):
+            print(f"NapCat HTTP action失败: {action}, status={status}, retcode={retcode}")
+            return None
+    return payload
 
 def get_verification_code(token):
     """从云码平台获取验证码 (原方法1)"""
