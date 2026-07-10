@@ -2,7 +2,10 @@ import unittest
 from datetime import date, datetime
 from unittest.mock import Mock
 
+import requests
+
 from services.ai_daily_source import DailyIssueCandidate
+from services.rss_filter_service import classify_rss_entry
 from services.wechat_article_service import WechatArticleError, WechatArticleService
 
 
@@ -69,6 +72,39 @@ class WechatArticleServiceTest(unittest.TestCase):
         service, _ = self.make_service(HTML.replace('id="js_content"', 'id="missing"'))
         with self.assertRaisesRegex(WechatArticleError, "正文"):
             service.fetch(candidate())
+
+    def test_transport_failure_uses_markdown_fallback(self):
+        session = Mock()
+        session.get.side_effect = requests.Timeout("timeout")
+        markdown = """AI 早报 2026-07-10
+=========
+## 概览
+### 要闻
+标题 #1
+## 标题 #1
+正文
+https://example.com/source
+"""
+        service = WechatArticleService(
+            "橘鸦Juya",
+            session=session,
+            markdown_extractor=Mock(return_value=markdown),
+        )
+
+        result = classify_rss_entry(service.fetch(candidate()), keywords=[])
+
+        self.assertEqual(result.all_items[0].category, "要闻")
+        self.assertEqual(result.all_items[0].url, "https://example.com/source")
+
+    def test_account_mismatch_never_uses_markdown_fallback(self):
+        extractor = Mock()
+        service, _ = self.make_service(HTML.replace("橘鸦Juya", "其他账号"))
+        service.markdown_extractor = extractor
+
+        with self.assertRaises(WechatArticleError):
+            service.fetch(candidate())
+
+        extractor.assert_not_called()
 
 
 if __name__ == "__main__":

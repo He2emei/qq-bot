@@ -94,7 +94,7 @@ RSS_FORWARD_USER_ID = int(os.getenv("RSS_FORWARD_USER_ID", "1919447403"))
 
 AI_DAILY_SOURCE_ORDER = [
     item.strip()
-    for item in os.getenv("AI_DAILY_SOURCE_ORDER", "bilibili").split(",")
+    for item in os.getenv("AI_DAILY_SOURCE_ORDER", "wechat_private,bilibili").split(",")
     if item.strip()
 ]
 BILIBILI_UPLOADER_MID = int(os.getenv("BILIBILI_UPLOADER_MID", "285286947"))
