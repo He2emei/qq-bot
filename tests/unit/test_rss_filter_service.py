@@ -70,6 +70,23 @@ class RssFilterServiceTest(unittest.TestCase):
             store.clear_keywords()
             self.assertEqual(store.list_keywords(), [])
 
+    def test_extract_news_items_uses_plain_text_source_url(self):
+        entry = RssEntry(
+            title="2026-07-10",
+            link="https://mp.weixin.qq.com/s/x",
+            published="",
+            summary="",
+            content_html="""<h3>要闻</h3><ul><li>标题 #1</li></ul>
+<h2>标题 #1</h2><p>https://mp.weixin.qq.com/mp/readtemplate?t=internal</p>
+<p>https://example.com/source。</p>""",
+            content_text="",
+            entry_id="x",
+        )
+
+        result = classify_rss_entry(entry, keywords=[])
+
+        self.assertEqual(result.all_items[0].url, "https://example.com/source")
+
 
 if __name__ == "__main__":
     unittest.main()
