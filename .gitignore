@@ -121,3 +121,6 @@ reference/
 # 测试和临时文件
 *.bundle
 temp/rss_exports/
+
+# Local Git worktrees
+.worktrees/
