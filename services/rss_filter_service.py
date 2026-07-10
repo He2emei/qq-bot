@@ -4,6 +4,7 @@ import os
 import re
 from dataclasses import dataclass
 from typing import Dict, List
+from urllib.parse import urlsplit
 
 from bs4 import BeautifulSoup
 
@@ -13,6 +14,8 @@ from services.rss_service import RssEntry, html_to_text
 
 DEFAULT_KEYWORDS = ["Claude", "DeepSeek", "Codex", "Gemini", "Antigravity"]
 SOURCE_IMPORTANT_CATEGORY = "要闻"
+SOURCE_URL_RE = re.compile(r"https?://[^\s<>\"']+")
+INTERNAL_SOURCE_HOSTS = {"mp.weixin.qq.com", "mmbiz.qpic.cn"}
 
 
 @dataclass(frozen=True)
@@ -175,9 +178,9 @@ def extract_news_items(entry: RssEntry, keywords: List[str]) -> List[RssNewsItem
         title_link = heading.find("a")
         title = _compact_text(title_link.get_text(" ", strip=True) if title_link else heading.get_text(" ", strip=True))
         title = re.sub(r"\s*#\d+\s*$", "", title).strip()
-        url = title_link.get("href", "").strip() if title_link else ""
         category = categories.get(number, "")
         section_html = _collect_section_html(heading)
+        url = _extract_source_url(title_link, section_html)
         content_text = html_to_text(section_html)
         matched_keywords = _match_keywords(f"{title}\n{content_text}", keywords)
 
@@ -235,6 +238,21 @@ def _collect_section_html(heading) -> str:
         parts.append(str(sibling))
         sibling = sibling.find_next_sibling()
     return "\n".join(parts)
+
+
+def _extract_source_url(title_link, section_html: str) -> str:
+    if title_link:
+        href = title_link.get("href", "").strip()
+        if href:
+            return href
+
+    text = BeautifulSoup(section_html, "html.parser").get_text(" ", strip=True)
+    for match in SOURCE_URL_RE.finditer(text):
+        candidate = match.group(0).rstrip(".,;:!?)]}，。；：！？）】》")
+        host = urlsplit(candidate).hostname
+        if host and host not in INTERNAL_SOURCE_HOSTS:
+            return candidate
+    return ""
 
 
 def _match_keywords(text: str, keywords: List[str]) -> List[str]:

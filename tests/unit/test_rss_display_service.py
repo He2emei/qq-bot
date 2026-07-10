@@ -25,7 +25,7 @@ class RssDisplayServiceTest(unittest.TestCase):
         self.assertEqual(nodes[0]["type"], "node")
         source_text = nodes[0]["data"]["content"][0]["data"]["text"]
         self.assertIn("原文链接：https://example.com/issue", source_text)
-        self.assertIn("哔哩哔哩视频版：https://www.bilibili.com/video/BV123", source_text)
+        self.assertIn("哔哩哔哩视频版：https://www.bilibili.com/video/BV_STRUCTURED/", source_text)
 
         headline_text = nodes[1]["data"]["content"][0]["data"]["text"]
         self.assertIn("【要闻】", headline_text)
@@ -50,6 +50,7 @@ def _sample_filter_result():
         content_html='<p>视频版：<a href="https://www.bilibili.com/video/BV123">哔哩哔哩</a></p>',
         content_text="",
         entry_id="entry-id",
+        video_url="https://www.bilibili.com/video/BV_STRUCTURED/",
     )
     headline = RssNewsItem(
         number=1,

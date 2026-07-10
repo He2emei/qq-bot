@@ -53,6 +53,8 @@ class RssServiceTest(unittest.TestCase):
         self.assertIn("source (https://example.com/source)", entries[0].content_text)
         self.assertIn("[图片] https://example.com/image.png", entries[0].content_text)
         self.assertEqual(entries[0].entry_id, "first-guid")
+        self.assertEqual(entries[0].video_url, "")
+        self.assertEqual(entries[0].discovery_source, "rss")
 
     def test_fetch_rss_entries_raises_on_request_error(self):
         with patch(

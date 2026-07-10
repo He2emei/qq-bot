@@ -205,6 +205,7 @@ NOTION_PROXY = "http://127.0.0.1:7890"  # 或其他代理地址
 - [**README_Relation_Integration.md**](docs/README_Relation_Integration.md) - Relation功能说明
 - [**PROXY_GUIDE.md**](docs/PROXY_GUIDE.md) - 代理配置指南
 - [**DATA_FILES_README.md**](docs/DATA_FILES_README.md) - 数据文件管理说明
+- [**AI_Daily_Wechat_Bilibili_20260710.md**](docs/AI_Daily_Wechat_Bilibili_20260710.md) - AI 早报微信 / B站双来源恢复说明
 
 ## 🧪 测试和验证
 

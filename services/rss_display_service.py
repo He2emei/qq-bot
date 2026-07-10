@@ -48,7 +48,7 @@ def _format_entry_date(title: str) -> str:
 
 
 def _format_source_info(result: RssFilterResult) -> str:
-    bilibili_url = _extract_bilibili_url(result.entry.content_html)
+    bilibili_url = result.entry.video_url or _extract_bilibili_url(result.entry.content_html)
     lines = [
         f"今日AI早报来源：{config.RSS_SOURCE_NAME}",
         f"原文链接：{result.entry.link}",

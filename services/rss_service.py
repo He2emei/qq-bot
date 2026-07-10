@@ -19,6 +19,8 @@ class RssEntry:
     content_html: str
     content_text: str
     entry_id: str
+    video_url: str = ""
+    discovery_source: str = "rss"
 
 
 class RssFetchError(RuntimeError):
