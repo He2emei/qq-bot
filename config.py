@@ -79,14 +79,28 @@ NOTION_DATA_PATHS = {
 FAQ_DATABASE_PATH = 'data/faq.db'           # FAQ数据库路径
 FAQ_IMAGES_DIR = 'data/faq_images/'         # 图片存储目录
 
-# === RSS 配置 ===
+# === AI早报配置 ===
+# 保留 RSS_* 名称以兼容既有命令、推送和部署配置。
 RSS_FEED_URL = 'https://imjuya.github.io/juya-ai-daily/rss.xml'
 RSS_SOURCE_NAME = '橘鸦AI早报'
-RSS_SOURCE_URL = 'https://imjuya.github.io/juya-ai-daily/'
+RSS_SOURCE_URL = 'https://mp.weixin.qq.com/'
 RSS_PUSH_GROUPS = {
     GROUP_IDS['ai_xjtu']: 'AI-xjtu',
     GROUP_IDS['ai_sjtu']: 'AI-sjtu',
 }
 RSS_PUSH_GROUP_IDS = list(RSS_PUSH_GROUPS.keys())
-RSS_POLL_INTERVAL_SECONDS = 60
+RSS_POLL_INTERVAL_SECONDS = int(os.getenv("RSS_POLL_INTERVAL_SECONDS", "300"))
 RSS_FORWARD_USER_ID = int(os.getenv("RSS_FORWARD_USER_ID", "1919447403"))
+
+AI_DAILY_SOURCE_ORDER = [
+    item.strip()
+    for item in os.getenv("AI_DAILY_SOURCE_ORDER", "bilibili").split(",")
+    if item.strip()
+]
+BILIBILI_UPLOADER_MID = int(os.getenv("BILIBILI_UPLOADER_MID", "285286947"))
+BILIBILI_UPLOADER_NAME = os.getenv("BILIBILI_UPLOADER_NAME", "橘鸦Juya")
+BILIBILI_SEARCH_KEYWORD = os.getenv("BILIBILI_SEARCH_KEYWORD", "橘鸦Juya")
+WECHAT_ACCOUNT_NICKNAME = os.getenv("WECHAT_ACCOUNT_NICKNAME", "橘鸦Juya")
+WECHAT_API_BASE_URL = os.getenv("WECHAT_API_BASE_URL", "https://wxcrawl.touchturing.com")
+WECHAT_API_KEY = os.getenv("WECHAT_API_KEY", "")
+WECHAT_API_SECRET = os.getenv("WECHAT_API_SECRET", "")
