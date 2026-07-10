@@ -1,25 +1,19 @@
 # handlers/rss_handler.py
 import config
 from services.rss_filter_service import rss_keyword_store
-from services.rss_push_service import push_rss_entry
-from services.rss_service import fetch_rss_entries
+from services.rss_push_service import check_and_push_latest_rss
 from utils.api_utils import send_group_message
 
 
 def handle_rss_daily_command(event):
-    """Fetch latest RSS entry and send the basic daily AI news display."""
+    """Discover and force-send the latest AI Daily to the requesting group."""
     group_id = event["group_id"]
 
     try:
-        entries = fetch_rss_entries(config.RSS_FEED_URL, limit=1)
-        if not entries:
-            send_group_message(group_id, "RSS源暂未获取到内容。")
-            return
-
-        push_rss_entry(entries[0], [group_id])
+        check_and_push_latest_rss(force=True, group_ids=[group_id])
     except Exception as e:
-        print(f"发送RSS早报失败: {e}")
-        send_group_message(group_id, f"发送RSS早报失败: {e}")
+        print(f"发送AI早报失败: {e}")
+        send_group_message(group_id, f"发送AI早报失败: {e}")
 
 
 def handle_rss_keyword_command(event):

@@ -8,16 +8,18 @@ from services.rss_push_service import check_and_push_latest_rss
 
 
 def check_rss_update_job():
-    """Poll RSS and push when a new entry appears."""
+    """Poll AI Daily sources and push new content to pending groups."""
     try:
-        print(f"[{datetime.now()}] 开始检查RSS更新...", flush=True)
+        print(f"[{datetime.now()}] 开始检查AI早报更新...", flush=True)
         result = check_and_push_latest_rss()
+        if result.failed_group_ids:
+            print(f"[{datetime.now()}] AI早报部分群推送失败: {result.failed_group_ids}", flush=True)
         if result.pushed:
-            print(f"[{datetime.now()}] RSS新条目已推送: {result.title} -> {result.group_ids}", flush=True)
-        else:
-            print(f"[{datetime.now()}] RSS暂无新条目: {result.entry_id}", flush=True)
+            print(f"[{datetime.now()}] AI早报已推送: {result.title} -> {result.group_ids}", flush=True)
+        elif not result.failed_group_ids:
+            print(f"[{datetime.now()}] AI早报暂无新内容: {result.entry_id}", flush=True)
     except Exception as e:
-        print(f"[{datetime.now()}] RSS更新检查失败: {e}", flush=True)
+        print(f"[{datetime.now()}] AI早报更新检查失败: {e}", flush=True)
 
 
 class RssScheduler:
@@ -39,14 +41,14 @@ class RssScheduler:
         )
 
     def start(self):
-        print(f"[{datetime.now()}] 启动 RSS 更新检查调度器...", flush=True)
+        print(f"[{datetime.now()}] 启动 AI早报更新检查调度器...", flush=True)
         self.scheduler.start()
-        print(f"[{datetime.now()}] RSS 更新检查调度器已启动", flush=True)
+        print(f"[{datetime.now()}] AI早报更新检查调度器已启动", flush=True)
 
     def stop(self):
-        print(f"[{datetime.now()}] 停止 RSS 更新检查调度器...", flush=True)
+        print(f"[{datetime.now()}] 停止 AI早报更新检查调度器...", flush=True)
         self.scheduler.shutdown()
-        print(f"[{datetime.now()}] RSS 更新检查调度器已停止", flush=True)
+        print(f"[{datetime.now()}] AI早报更新检查调度器已停止", flush=True)
 
 
 rss_scheduler = RssScheduler()

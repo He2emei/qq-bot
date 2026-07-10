@@ -90,6 +90,10 @@ def send_group_message(group_id, message):
         response = requests.get(url, params=params, verify=False, timeout=10)
         if response.status_code == 200:
             print(f"向群 {group_id} 发送消息成功")
+            try:
+                return response.json()
+            except ValueError:
+                return {"raw": response.text}
         else:
             print(f"向群 {group_id} 发送消息失败: {response.status_code}, {response.text}")
     except requests.RequestException as e:
