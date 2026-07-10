@@ -16,7 +16,7 @@ DYNAMIC_CODE_URL = 'http://47.115.143.149:99/'
 
 # OpenAI / 腾讯知识引擎 API 配置
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_BASE_URL = "https://api.lkeap.cloud.tencent.com/v1"
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.lkeap.cloud.tencent.com/v1")
 
 # QQ群号配置
 GROUP_IDS = {
