@@ -1,6 +1,7 @@
 import re
 from datetime import date, datetime
 from html import unescape
+from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
 import requests
@@ -34,7 +35,7 @@ class BilibiliDailySource:
                 ),
                 "Accept": "application/json, text/plain, */*",
                 "Accept-Language": "zh-CN,zh;q=0.9",
-                "Referer": f"https://search.bilibili.com/all?keyword={keyword}",
+                "Referer": f"https://search.bilibili.com/all?keyword={quote(keyword)}",
             }
         )
 

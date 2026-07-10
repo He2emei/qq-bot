@@ -35,6 +35,17 @@ def video(
 
 
 class BilibiliDailySourceTest(unittest.TestCase):
+    def test_encodes_non_ascii_keyword_in_referer_header(self):
+        session = Mock()
+        session.headers = {}
+
+        BilibiliDailySource(285286947, "橘鸦Juya", "橘鸦Juya", session=session)
+
+        self.assertEqual(
+            session.headers["Referer"],
+            "https://search.bilibili.com/all?keyword=%E6%A9%98%E9%B8%A6Juya",
+        )
+
     def make_source(self, responses):
         session = Mock()
         session.cookies = Mock()

@@ -15,7 +15,7 @@ JJL_QUERY_URL = JJL_BASE_URL + 'api/api_query'
 DYNAMIC_CODE_URL = 'http://47.115.143.149:99/'
 
 # OpenAI / 腾讯知识引擎 API 配置
-OPENAI_API_KEY = "sk-XdT9a5PXGPCWGyGiZ78jUpbkrVROi5ef2SqJV2iyItRUlvMa" # 注意：请妥善保管您的API Key
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_BASE_URL = "https://api.lkeap.cloud.tencent.com/v1"
 
 # QQ群号配置
