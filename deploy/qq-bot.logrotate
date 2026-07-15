@@ -1,0 +1,11 @@
+/root/tai/qq-bot/run.log {
+    daily
+    maxsize 20M
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    su root root
+}

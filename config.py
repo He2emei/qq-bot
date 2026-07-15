@@ -8,6 +8,12 @@ load_dotenv()
 NAPCAT_BASE_URL = os.getenv("NAPCAT_BASE_URL", "http://127.0.0.1:23334")
 NAPCAT_WS_URL = os.getenv("NAPCAT_WS_URL", "ws://127.0.0.1:23334")
 NAPCAT_ACCESS_TOKEN = os.getenv("NAPCAT_ACCESS_TOKEN", "")
+STATUS_AUTHORIZED_USER_ID = int(os.getenv("STATUS_AUTHORIZED_USER_ID", "0"))
+STATUS_ALLOWED_SOURCE_IPS = {
+    value.strip()
+    for value in os.getenv("STATUS_ALLOWED_SOURCE_IPS", "127.0.0.1,::1").split(",")
+    if value.strip()
+}
 
 # 外部服务URL
 JJL_BASE_URL = 'http://yunma.xyq5.top/'
@@ -45,6 +51,17 @@ DATA_PATHS = {
     'memory': 'data/memory.json',
     'rss_keywords': 'data/rss_keywords.json',
     'rss_state': 'data/rss_state.json'
+}
+
+# === Tibo Radar 配置 ===
+TIBO_RADAR_API_KEY = os.getenv("TIBO_RADAR_API_KEY", "")
+TIBO_RADAR_API_BASE_URL = os.getenv("TIBO_RADAR_API_BASE_URL", "https://api.twitterapi.io")
+TIBO_RADAR_HANDLE = os.getenv("TIBO_RADAR_HANDLE", "thsottiaux").lstrip("@")
+TIBO_RADAR_GROUP_ID = int(os.getenv("TIBO_RADAR_GROUP_ID", "1105591264"))
+TIBO_RADAR_POLL_INTERVAL_SECONDS = int(os.getenv("TIBO_RADAR_POLL_INTERVAL_SECONDS", "300"))
+TIBO_RADAR_STATE_PATH = os.getenv("TIBO_RADAR_STATE_PATH", "data/tibo_radar_state.json")
+TIBO_RADAR_BOOTSTRAP_SEND = os.getenv("TIBO_RADAR_BOOTSTRAP_SEND", "false").lower() in {
+    "1", "true", "yes", "on"
 }
 
 # Flask 服务配置

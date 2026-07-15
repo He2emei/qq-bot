@@ -1,0 +1,275 @@
+import json
+import os
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
+from tempfile import NamedTemporaryFile
+from typing import Callable, List
+
+import requests
+
+try:
+    import fcntl
+except ImportError:  # Windows test/development host
+    fcntl = None
+
+
+class TiboSourceError(RuntimeError):
+    """Raised when the configured Tibo source cannot return valid data."""
+
+
+@dataclass(frozen=True)
+class TiboPost:
+    post_id: str
+    text: str
+    created_at: datetime
+    url: str
+    is_reply: bool = False
+
+
+@dataclass(frozen=True)
+class TiboRadarResult:
+    seeded_ids: List[str] = field(default_factory=list)
+    pushed_ids: List[str] = field(default_factory=list)
+    failed_ids: List[str] = field(default_factory=list)
+
+
+def _parse_datetime(value: str) -> datetime:
+    if not value:
+        raise TiboSourceError("帖子缺少创建时间")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        try:
+            parsed = parsedate_to_datetime(value)
+        except (TypeError, ValueError) as exc:
+            raise TiboSourceError(f"无法解析帖子时间: {value}") from exc
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+class TwitterApiIoSource:
+    """Fetch incremental public posts through TwitterAPI.io advanced search."""
+
+    def __init__(
+        self,
+        api_key: str,
+        handle: str,
+        base_url: str = "https://api.twitterapi.io",
+        session=None,
+        timeout=(5, 15),
+    ):
+        self.api_key = api_key
+        self.handle = handle.lstrip("@")
+        self.base_url = base_url.rstrip("/")
+        self.session = session or requests.Session()
+        self.timeout = timeout
+
+    def fetch_since(self, since: datetime, until: datetime) -> List[TiboPost]:
+        query = (
+            f"from:{self.handle} -filter:nativeretweets "
+            f"since_time:{int(since.timestamp())} until_time:{int(until.timestamp())}"
+        )
+        posts = []
+        params = {"query": query, "queryType": "Latest"}
+        seen_cursors = set()
+        for _ in range(20):
+            try:
+                response = self.session.get(
+                    f"{self.base_url}/twitter/tweet/advanced_search",
+                    headers={"X-API-Key": self.api_key},
+                    params=params,
+                    timeout=self.timeout,
+                )
+                response.raise_for_status()
+                payload = response.json()
+            except (requests.RequestException, RuntimeError, ValueError) as exc:
+                raise TiboSourceError(f"TwitterAPI.io 请求失败: {type(exc).__name__}") from exc
+
+            raw_posts = payload.get("tweets", []) if isinstance(payload, dict) else []
+            for item in raw_posts:
+                if not isinstance(item, dict):
+                    continue
+                post_id = str(item.get("id", "")).strip()
+                text = str(item.get("text", "")).strip()
+                if not post_id or not text:
+                    continue
+                posts.append(
+                    TiboPost(
+                        post_id=post_id,
+                        text=text,
+                        created_at=_parse_datetime(str(item.get("createdAt", ""))),
+                        url=str(item.get("url") or f"https://x.com/{self.handle}/status/{post_id}"),
+                        is_reply=bool(item.get("isReply")),
+                    )
+                )
+
+            cursor = payload.get("next_cursor") if isinstance(payload, dict) else None
+            if not payload.get("has_next_page") or not cursor:
+                break
+            if cursor in seen_cursors:
+                raise TiboSourceError("TwitterAPI.io 返回重复分页游标")
+            seen_cursors.add(cursor)
+            params = dict(params, cursor=cursor)
+        else:
+            raise TiboSourceError("TwitterAPI.io 分页超过安全上限")
+        return posts
+
+
+class TiboRadarStateStore:
+    """Persist per-post, per-group delivery state atomically."""
+
+    def __init__(self, path: str):
+        self.path = path
+
+    def load(self) -> dict:
+        if not os.path.exists(self.path):
+            return {}
+        try:
+            with open(self.path, "r", encoding="utf-8") as file:
+                data = json.load(file)
+        except (OSError, json.JSONDecodeError):
+            return {}
+        return data if isinstance(data, dict) else {}
+
+    def is_initialized(self) -> bool:
+        return bool(self.load().get("initialized"))
+
+    def query_since(self, now: datetime) -> datetime:
+        value = self.load().get("last_checked_at")
+        if not value:
+            return now - timedelta(hours=24)
+        return _parse_datetime(value) - timedelta(minutes=5)
+
+    def is_completed(self, post_id: str, group_id: int) -> bool:
+        deliveries = self.load().get("deliveries", {})
+        return str(group_id) in deliveries.get(str(post_id), {})
+
+    def mark_completed(self, post: TiboPost, group_id: int, now: datetime) -> None:
+        data = self.load()
+        deliveries = data.setdefault("deliveries", {})
+        groups = deliveries.setdefault(post.post_id, {})
+        groups[str(group_id)] = now.isoformat()
+        data["initialized"] = True
+        self._save(data)
+
+    def mark_checked(self, now: datetime) -> None:
+        data = self.load()
+        data["initialized"] = True
+        data["last_checked_at"] = now.isoformat()
+        deliveries = data.get("deliveries", {})
+        if len(deliveries) > 500:
+            data["deliveries"] = dict(list(deliveries.items())[-500:])
+        self._save(data)
+
+    def seed(self, posts: List[TiboPost], group_id: int, now: datetime) -> None:
+        data = self.load()
+        deliveries = data.setdefault("deliveries", {})
+        for post in posts:
+            deliveries.setdefault(post.post_id, {})[str(group_id)] = now.isoformat()
+        data["initialized"] = True
+        data["last_checked_at"] = now.isoformat()
+        self._save(data)
+
+    def try_lock(self):
+        return _StateFileLock(f"{self.path}.lock")
+
+    def _save(self, data: dict) -> None:
+        directory = os.path.dirname(self.path) or "."
+        os.makedirs(directory, exist_ok=True)
+        temp_path = ""
+        try:
+            with NamedTemporaryFile("w", encoding="utf-8", dir=directory, delete=False) as file:
+                temp_path = file.name
+                json.dump(data, file, ensure_ascii=False, indent=2)
+            os.replace(temp_path, self.path)
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                os.unlink(temp_path)
+
+
+def format_tibo_post(post: TiboPost) -> str:
+    kind = "回复" if post.is_reply else "动态"
+    return "\n".join(
+        [
+            f"[Tibo Radar · {kind}]",
+            post.text,
+            "",
+            f"发布时间: {post.created_at.astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')}",
+            f"原帖: {post.url}",
+            "信源: TwitterAPI.io（非 X 官方 API）",
+        ]
+    )
+
+
+class _StateFileLock:
+    def __init__(self, path):
+        self.path = path
+        self.file = None
+        self.acquired = False
+
+    def __enter__(self):
+        os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
+        self.file = open(self.path, "a+")
+        if fcntl is None:
+            self.acquired = True
+            return self
+        try:
+            fcntl.flock(self.file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            self.acquired = True
+        except BlockingIOError:
+            self.acquired = False
+        return self
+
+    def __exit__(self, *_):
+        if self.file is not None:
+            if self.acquired and fcntl is not None:
+                fcntl.flock(self.file.fileno(), fcntl.LOCK_UN)
+            self.file.close()
+
+
+class TiboRadar:
+    def __init__(
+        self,
+        source,
+        state_store: TiboRadarStateStore,
+        sender: Callable,
+        group_id: int,
+        bootstrap_send: bool = False,
+    ):
+        self.source = source
+        self.state_store = state_store
+        self.sender = sender
+        self.group_id = int(group_id)
+        self.bootstrap_send = bootstrap_send
+
+    def check_and_push(self, now: datetime = None) -> TiboRadarResult:
+        now = now or datetime.now(timezone.utc)
+        with self.state_store.try_lock() as lock:
+            if not lock.acquired:
+                return TiboRadarResult()
+            return self._check_and_push_locked(now)
+
+    def _check_and_push_locked(self, now: datetime) -> TiboRadarResult:
+        posts = self.source.fetch_since(self.state_store.query_since(now), now)
+        posts = sorted(posts, key=lambda item: (item.created_at, item.post_id))
+
+        if not self.state_store.is_initialized() and not self.bootstrap_send:
+            self.state_store.seed(posts, self.group_id, now)
+            return TiboRadarResult(seeded_ids=[item.post_id for item in posts])
+
+        pushed_ids = []
+        failed_ids = []
+        for item in posts:
+            if self.state_store.is_completed(item.post_id, self.group_id):
+                continue
+            if self.sender(self.group_id, format_tibo_post(item)):
+                self.state_store.mark_completed(item, self.group_id, now)
+                pushed_ids.append(item.post_id)
+            else:
+                failed_ids.append(item.post_id)
+
+        if not failed_ids:
+            self.state_store.mark_checked(now)
+        return TiboRadarResult(pushed_ids=pushed_ids, failed_ids=failed_ids)

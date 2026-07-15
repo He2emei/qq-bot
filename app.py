@@ -9,7 +9,8 @@ import config
 # 导入所有处理器
 from handlers import aql_handler, game_handler, notion_handler, at_handler, faq_handler, rss_handler#, ai_handler, general_handler
 
-from utils.api_utils import send_group_message
+from utils.api_utils import send_group_message, send_private_message
+from services.bot_status_service import handle_status_command
 
 # 启动 Notion 定时任务调度器
 try:
@@ -24,6 +25,13 @@ try:
     start_rss_scheduler()
 except Exception as e:
     print(f"启动 RSS 调度器失败: {e}")
+
+# 启动独立的 Tibo Radar 调度器；未配置 API key 时安全禁用
+try:
+    from services.tibo_radar_scheduler import start_tibo_radar_scheduler
+    start_tibo_radar_scheduler()
+except Exception as e:
+    print(f"启动 Tibo Radar 调度器失败: {e}")
 
 app = Flask(__name__)
 
@@ -114,14 +122,28 @@ def receive_event():
     print(event_data)
 
     # 基本的事件校验
-    if not event_data or event_data.get('post_type') != 'message' or event_data.get('message_type') != 'group':
+    if not event_data or event_data.get('post_type') != 'message':
+        return "Not a message event", 200
+
+    message_text = get_message_text(event_data.get('message', []))
+    if handle_status_command(
+        event_data,
+        message_text,
+        config.STATUS_AUTHORIZED_USER_ID,
+        send_group_message,
+        send_private_message,
+        source_ip=request.remote_addr or "",
+        allowed_source_ips=config.STATUS_ALLOWED_SOURCE_IPS,
+    ):
+        return "Status handled", 200
+
+    if event_data.get('message_type') != 'group':
         return "Not a group message event", 200
 
     group_id = event_data.get('group_id')
     if group_id not in config.MONITORED_GROUPS:
         return "Group not monitored", 200
 
-    message_text = get_message_text(event_data.get('message', []))
     if not message_text:
         return "Empty message", 200
 

@@ -149,6 +149,36 @@ def _parse_http_onebot_response(response, action):
             return None
     return payload
 
+
+def send_private_message(user_id, message):
+    """发送私聊消息，并仅在 OneBot 确认成功时返回结果。"""
+    ws_result = _napcat_ws_request(
+        "send_private_msg",
+        {"user_id": user_id, "message": message},
+        timeout=10,
+    )
+    if ws_result:
+        print(f"向用户 {user_id} 发送消息成功")
+        return ws_result
+
+    url = f"{config.NAPCAT_BASE_URL}/send_private_msg"
+    try:
+        response = requests.get(
+            url,
+            params={"user_id": user_id, "message": message},
+            verify=False,
+            timeout=10,
+        )
+        if response.status_code == 200:
+            result = _parse_http_onebot_response(response, "send_private_msg")
+            if result is not None:
+                print(f"向用户 {user_id} 发送消息成功")
+            return result
+        print(f"向用户 {user_id} 发送消息失败: {response.status_code}, {response.text}")
+    except requests.RequestException as exc:
+        print(f"发送私聊消息时发生网络异常: {exc}")
+    return None
+
 def get_verification_code(token):
     """从云码平台获取验证码 (原方法1)"""
     data = {'token': token}

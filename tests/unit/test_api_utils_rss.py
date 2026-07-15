@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from utils.api_utils import send_group_forward_message, send_group_message
+from utils.api_utils import send_group_forward_message, send_group_message, send_private_message
 
 
 class ApiUtilsRssTest(unittest.TestCase):
@@ -31,6 +31,15 @@ class ApiUtilsRssTest(unittest.TestCase):
         request_post.return_value = response
 
         self.assertIsNone(send_group_forward_message(11, []))
+
+    @patch("utils.api_utils._napcat_ws_request", return_value=None)
+    @patch("utils.api_utils.requests.get")
+    def test_private_message_uses_same_onebot_success_check(self, request_get, _ws):
+        response = Mock(status_code=200, text="ok")
+        response.json.return_value = {"status": "ok", "retcode": 0}
+        request_get.return_value = response
+
+        self.assertEqual(send_private_message(42, "hello"), {"status": "ok", "retcode": 0})
 
 
 if __name__ == "__main__":
