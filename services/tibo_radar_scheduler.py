@@ -4,6 +4,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 import config
 from services.tibo_radar_factory import build_tibo_radar
+from services.tibo_radar_stream import TwitterApiIoStreamWorker
 
 
 def start_tibo_radar_scheduler():
@@ -35,8 +36,20 @@ def start_tibo_radar_scheduler():
         coalesce=True,
     )
     scheduler.start()
+    stream_worker = None
+    if config.TIBO_RADAR_STREAM_ENABLED:
+        stream_worker = TwitterApiIoStreamWorker(
+            radar=radar,
+            api_key=config.TIBO_RADAR_API_KEY,
+            handle=config.TIBO_RADAR_HANDLE,
+            base_url=config.TIBO_RADAR_API_BASE_URL,
+            websocket_url=config.TIBO_RADAR_WEBSOCKET_URL,
+            rule_tag=config.TIBO_RADAR_RULE_TAG,
+            rule_interval_seconds=config.TIBO_RADAR_RULE_INTERVAL_SECONDS,
+        )
+        stream_worker.start()
     print(
         f"[{datetime.now()}] Tibo Radar 调度器已启动，目标群 {config.TIBO_RADAR_GROUP_ID}",
         flush=True,
     )
-    return scheduler
+    return scheduler, stream_worker

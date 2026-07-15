@@ -1,6 +1,6 @@
 import json
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock
@@ -160,6 +160,51 @@ class TiboRadarTest(unittest.TestCase):
             self.assertEqual(first.failed_ids, ["101"])
             self.assertEqual(second.pushed_ids, ["101"])
             self.assertTrue(store.is_completed("101", 1105591264))
+
+    def test_stream_delivery_does_not_advance_search_backfill_watermark(self):
+        with TemporaryDirectory() as directory:
+            source = Mock()
+            source.fetch_since.return_value = [post(100)]
+            radar, store = self.make_radar(directory, source, Mock(return_value={"status": "ok"}))
+            initial_check = datetime(2026, 7, 16, 2, tzinfo=timezone.utc)
+            radar.check_and_push(initial_check)
+
+            radar.push_posts([post(101, 1)], datetime(2026, 7, 16, 3, tzinfo=timezone.utc))
+
+            self.assertEqual(
+                store.query_since(datetime(2026, 7, 16, 4, tzinfo=timezone.utc)),
+                datetime(2026, 7, 16, 1, 55, tzinfo=timezone.utc),
+            )
+
+    def test_failed_stream_delivery_is_persisted_and_retried_without_source(self):
+        with TemporaryDirectory() as directory:
+            source = Mock()
+            source.fetch_since.return_value = []
+            sender = Mock(side_effect=[False, True])
+            radar, store = self.make_radar(directory, source, sender)
+            now = datetime(2026, 7, 16, 3, tzinfo=timezone.utc)
+
+            first = radar.push_posts([post(101, 1)], now)
+            second = radar.check_and_push(now + timedelta(minutes=1))
+
+            self.assertEqual(first.failed_ids, ["101"])
+            self.assertEqual(second.pushed_ids, ["101"])
+            source.fetch_since.assert_called_once()
+            self.assertEqual(store.load().get("pending"), {})
+            self.assertTrue(store.is_completed("101", 1105591264))
+
+    def test_failed_pending_delivery_prevents_source_call_until_retry_succeeds(self):
+        with TemporaryDirectory() as directory:
+            source = Mock()
+            radar, store = self.make_radar(directory, source, Mock(return_value=False))
+            now = datetime(2026, 7, 16, 3, tzinfo=timezone.utc)
+            radar.push_posts([post(101, 1)], now)
+
+            result = radar.check_and_push(now + timedelta(minutes=1))
+
+            self.assertEqual(result.failed_ids, ["101"])
+            source.fetch_since.assert_not_called()
+            self.assertEqual(store.load()["pending"]["101"]["received_at"], now.isoformat())
 
 
 if __name__ == "__main__":

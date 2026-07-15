@@ -34,7 +34,7 @@ class TiboRadarResult:
     failed_ids: List[str] = field(default_factory=list)
 
 
-def _parse_datetime(value: str) -> datetime:
+def parse_tibo_datetime(value: str) -> datetime:
     if not value:
         raise TiboSourceError("帖子缺少创建时间")
     try:
@@ -74,7 +74,7 @@ class TwitterApiIoSource:
         posts = []
         params = {"query": query, "queryType": "Latest"}
         seen_cursors = set()
-        for _ in range(20):
+        for page_number in range(1, 21):
             try:
                 response = self.session.get(
                     f"{self.base_url}/twitter/tweet/advanced_search",
@@ -88,6 +88,18 @@ class TwitterApiIoSource:
                 raise TiboSourceError(f"TwitterAPI.io 请求失败: {type(exc).__name__}") from exc
 
             raw_posts = payload.get("tweets", []) if isinstance(payload, dict) else []
+            response_headers = getattr(response, "headers", {})
+            credits = (
+                response_headers.get("x-credits-used")
+                or response_headers.get("x-credit-cost")
+                or (payload.get("credits_used") if isinstance(payload, dict) else None)
+                or "unknown"
+            )
+            print(
+                f"Tibo Radar advanced_search page={page_number} "
+                f"tweets={len(raw_posts)} credits={credits}",
+                flush=True,
+            )
             for item in raw_posts:
                 if not isinstance(item, dict):
                     continue
@@ -99,7 +111,7 @@ class TwitterApiIoSource:
                     TiboPost(
                         post_id=post_id,
                         text=text,
-                        created_at=_parse_datetime(str(item.get("createdAt", ""))),
+                        created_at=parse_tibo_datetime(str(item.get("createdAt", ""))),
                         url=str(item.get("url") or f"https://x.com/{self.handle}/status/{post_id}"),
                         is_reply=bool(item.get("isReply")),
                     )
@@ -140,7 +152,7 @@ class TiboRadarStateStore:
         value = self.load().get("last_checked_at")
         if not value:
             return now - timedelta(hours=24)
-        return _parse_datetime(value) - timedelta(minutes=5)
+        return parse_tibo_datetime(value) - timedelta(minutes=5)
 
     def is_completed(self, post_id: str, group_id: int) -> bool:
         deliveries = self.load().get("deliveries", {})
@@ -151,8 +163,41 @@ class TiboRadarStateStore:
         deliveries = data.setdefault("deliveries", {})
         groups = deliveries.setdefault(post.post_id, {})
         groups[str(group_id)] = now.isoformat()
-        data["initialized"] = True
+        data.setdefault("pending", {}).pop(post.post_id, None)
         self._save(data)
+
+    def enqueue_pending(self, posts: List[TiboPost], received_at: datetime) -> None:
+        data = self.load()
+        pending = data.setdefault("pending", {})
+        for post in posts:
+            pending.setdefault(
+                post.post_id,
+                {
+                    "text": post.text,
+                    "created_at": post.created_at.isoformat(),
+                    "url": post.url,
+                    "is_reply": post.is_reply,
+                    "received_at": received_at.isoformat(),
+                },
+            )
+        self._save(data)
+
+    def pending_posts(self) -> List[TiboPost]:
+        posts = []
+        for post_id, item in self.load().get("pending", {}).items():
+            try:
+                posts.append(
+                    TiboPost(
+                        post_id=str(post_id),
+                        text=str(item["text"]),
+                        created_at=parse_tibo_datetime(str(item["created_at"])),
+                        url=str(item["url"]),
+                        is_reply=bool(item.get("is_reply")),
+                    )
+                )
+            except (KeyError, TypeError, TiboSourceError):
+                continue
+        return posts
 
     def mark_checked(self, now: datetime) -> None:
         data = self.load()
@@ -174,6 +219,9 @@ class TiboRadarStateStore:
 
     def try_lock(self):
         return _StateFileLock(f"{self.path}.lock")
+
+    def try_stream_lock(self):
+        return _StateFileLock(f"{self.path}.stream.lock")
 
     def _save(self, data: dict) -> None:
         directory = os.path.dirname(self.path) or "."
@@ -252,10 +300,47 @@ class TiboRadar:
             return self._check_and_push_locked(now)
 
     def _check_and_push_locked(self, now: datetime) -> TiboRadarResult:
+        pending_result = self._push_posts_locked(
+            self.state_store.pending_posts(),
+            now,
+            seed_if_uninitialized=False,
+            advance_checked=False,
+        )
+        if pending_result.failed_ids:
+            return pending_result
         posts = self.source.fetch_since(self.state_store.query_since(now), now)
+        search_result = self._push_posts_locked(
+            posts, now, seed_if_uninitialized=True, advance_checked=True
+        )
+        return TiboRadarResult(
+            seeded_ids=search_result.seeded_ids,
+            pushed_ids=pending_result.pushed_ids + search_result.pushed_ids,
+            failed_ids=search_result.failed_ids,
+        )
+
+    def push_posts(self, posts: List[TiboPost], now: datetime = None) -> TiboRadarResult:
+        now = now or datetime.now(timezone.utc)
+        with self.state_store.try_lock() as lock:
+            if not lock.acquired:
+                return TiboRadarResult()
+            self.state_store.enqueue_pending(posts, now)
+            return self._push_posts_locked(
+                self.state_store.pending_posts(),
+                now,
+                seed_if_uninitialized=False,
+                advance_checked=False,
+            )
+
+    def _push_posts_locked(
+        self,
+        posts: List[TiboPost],
+        now: datetime,
+        seed_if_uninitialized: bool,
+        advance_checked: bool,
+    ) -> TiboRadarResult:
         posts = sorted(posts, key=lambda item: (item.created_at, item.post_id))
 
-        if not self.state_store.is_initialized() and not self.bootstrap_send:
+        if seed_if_uninitialized and not self.state_store.is_initialized() and not self.bootstrap_send:
             self.state_store.seed(posts, self.group_id, now)
             return TiboRadarResult(seeded_ids=[item.post_id for item in posts])
 
@@ -270,6 +355,6 @@ class TiboRadar:
             else:
                 failed_ids.append(item.post_id)
 
-        if not failed_ids:
+        if advance_checked and not failed_ids:
             self.state_store.mark_checked(now)
         return TiboRadarResult(pushed_ids=pushed_ids, failed_ids=failed_ids)

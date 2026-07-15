@@ -58,11 +58,19 @@ TIBO_RADAR_API_KEY = os.getenv("TIBO_RADAR_API_KEY", "")
 TIBO_RADAR_API_BASE_URL = os.getenv("TIBO_RADAR_API_BASE_URL", "https://api.twitterapi.io")
 TIBO_RADAR_HANDLE = os.getenv("TIBO_RADAR_HANDLE", "thsottiaux").lstrip("@")
 TIBO_RADAR_GROUP_ID = int(os.getenv("TIBO_RADAR_GROUP_ID", "1105591264"))
-TIBO_RADAR_POLL_INTERVAL_SECONDS = int(os.getenv("TIBO_RADAR_POLL_INTERVAL_SECONDS", "300"))
+TIBO_RADAR_POLL_INTERVAL_SECONDS = int(os.getenv("TIBO_RADAR_POLL_INTERVAL_SECONDS", "900"))
 TIBO_RADAR_STATE_PATH = os.getenv("TIBO_RADAR_STATE_PATH", "data/tibo_radar_state.json")
 TIBO_RADAR_BOOTSTRAP_SEND = os.getenv("TIBO_RADAR_BOOTSTRAP_SEND", "false").lower() in {
     "1", "true", "yes", "on"
 }
+TIBO_RADAR_STREAM_ENABLED = os.getenv("TIBO_RADAR_STREAM_ENABLED", "true").lower() in {
+    "1", "true", "yes", "on"
+}
+TIBO_RADAR_WEBSOCKET_URL = os.getenv(
+    "TIBO_RADAR_WEBSOCKET_URL", "wss://ws.twitterapi.io/twitter/tweet/websocket"
+)
+TIBO_RADAR_RULE_TAG = os.getenv("TIBO_RADAR_RULE_TAG", "qq-bot-tibo-radar")
+TIBO_RADAR_RULE_INTERVAL_SECONDS = int(os.getenv("TIBO_RADAR_RULE_INTERVAL_SECONDS", "5"))
 
 # Flask 服务配置
 SERVER_HOST = '0.0.0.0'
