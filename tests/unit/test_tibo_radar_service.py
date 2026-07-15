@@ -191,6 +191,7 @@ class TiboRadarTest(unittest.TestCase):
             self.assertEqual(second.pushed_ids, ["101"])
             source.fetch_since.assert_called_once()
             self.assertEqual(store.load().get("pending"), {})
+            self.assertEqual(store.load()["received_at"]["101"], now.isoformat())
             self.assertTrue(store.is_completed("101", 1105591264))
 
     def test_failed_pending_delivery_prevents_source_call_until_retry_succeeds(self):

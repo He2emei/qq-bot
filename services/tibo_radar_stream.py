@@ -20,7 +20,7 @@ class TwitterApiIoRuleClient:
         self.timeout = timeout
 
     def ensure_rule(self, tag, value, interval_seconds):
-        headers = {"X-API-Key": self.api_key}
+        headers = {"X-API-Key": self.api_key, "Content-Type": "application/json"}
         try:
             response = self.session.get(
                 f"{self.base_url}/oapi/tweet_filter/get_rules",
@@ -29,22 +29,43 @@ class TwitterApiIoRuleClient:
             )
             response.raise_for_status()
             payload = response.json()
+            rule_id = None
             for rule in payload.get("rules", []):
                 if rule.get("tag") == tag and rule.get("value") == value:
-                    return str(rule["rule_id"])
+                    rule_id = str(rule["rule_id"])
+                    break
+
+            if rule_id is None:
+                response = self.session.post(
+                    f"{self.base_url}/oapi/tweet_filter/add_rule",
+                    headers=headers,
+                    json={
+                        "tag": tag,
+                        "value": value,
+                        "interval_seconds": int(interval_seconds),
+                    },
+                    timeout=self.timeout,
+                )
+                response.raise_for_status()
+                rule_id = response.json().get("rule_id")
+            if not rule_id:
+                raise TiboSourceError("TwitterAPI.io 规则响应缺少 rule_id")
 
             response = self.session.post(
-                f"{self.base_url}/oapi/tweet_filter/add_rule",
+                f"{self.base_url}/oapi/tweet_filter/update_rule",
                 headers=headers,
-                data={"tag": tag, "value": value, "interval_seconds": int(interval_seconds)},
+                json={
+                    "rule_id": str(rule_id),
+                    "tag": tag,
+                    "value": value,
+                    "interval_seconds": int(interval_seconds),
+                    "is_effect": 1,
+                },
                 timeout=self.timeout,
             )
             response.raise_for_status()
-            rule_id = response.json().get("rule_id")
         except (requests.RequestException, RuntimeError, ValueError, KeyError) as exc:
             raise TiboSourceError(f"TwitterAPI.io 规则配置失败: {type(exc).__name__}") from exc
-        if not rule_id:
-            raise TiboSourceError("TwitterAPI.io 规则响应缺少 rule_id")
         return str(rule_id)
 
 

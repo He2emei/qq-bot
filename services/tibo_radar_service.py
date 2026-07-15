@@ -169,7 +169,9 @@ class TiboRadarStateStore:
     def enqueue_pending(self, posts: List[TiboPost], received_at: datetime) -> None:
         data = self.load()
         pending = data.setdefault("pending", {})
+        received = data.setdefault("received_at", {})
         for post in posts:
+            received.setdefault(post.post_id, received_at.isoformat())
             pending.setdefault(
                 post.post_id,
                 {
@@ -217,8 +219,8 @@ class TiboRadarStateStore:
         data["last_checked_at"] = now.isoformat()
         self._save(data)
 
-    def try_lock(self):
-        return _StateFileLock(f"{self.path}.lock")
+    def try_lock(self, blocking: bool = False):
+        return _StateFileLock(f"{self.path}.lock", blocking=blocking)
 
     def try_stream_lock(self):
         return _StateFileLock(f"{self.path}.stream.lock")
@@ -252,8 +254,9 @@ def format_tibo_post(post: TiboPost) -> str:
 
 
 class _StateFileLock:
-    def __init__(self, path):
+    def __init__(self, path, blocking=False):
         self.path = path
+        self.blocking = blocking
         self.file = None
         self.acquired = False
 
@@ -264,7 +267,8 @@ class _StateFileLock:
             self.acquired = True
             return self
         try:
-            fcntl.flock(self.file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            mode = fcntl.LOCK_EX if self.blocking else fcntl.LOCK_EX | fcntl.LOCK_NB
+            fcntl.flock(self.file.fileno(), mode)
             self.acquired = True
         except BlockingIOError:
             self.acquired = False
@@ -320,7 +324,7 @@ class TiboRadar:
 
     def push_posts(self, posts: List[TiboPost], now: datetime = None) -> TiboRadarResult:
         now = now or datetime.now(timezone.utc)
-        with self.state_store.try_lock() as lock:
+        with self.state_store.try_lock(blocking=True) as lock:
             if not lock.acquired:
                 return TiboRadarResult()
             self.state_store.enqueue_pending(posts, now)

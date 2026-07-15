@@ -21,23 +21,30 @@ class TwitterApiIoRuleClientTest(unittest.TestCase):
         session.get.return_value = FakeResponse(
             {"rules": [{"rule_id": "r1", "tag": "qq-bot-tibo", "value": "from:thsottiaux -filter:nativeretweets"}]}
         )
+        session.post.return_value = FakeResponse({"status": "success"})
         client = TwitterApiIoRuleClient("secret", session=session)
 
         rule_id = client.ensure_rule("qq-bot-tibo", "from:thsottiaux -filter:nativeretweets", 5)
 
         self.assertEqual(rule_id, "r1")
-        session.post.assert_not_called()
+        self.assertTrue(session.post.call_args.args[0].endswith("/update_rule"))
+        self.assertEqual(session.post.call_args.kwargs["json"]["is_effect"], 1)
 
     def test_missing_rule_is_registered(self):
         session = Mock()
         session.get.return_value = FakeResponse({"rules": []})
-        session.post.return_value = FakeResponse({"rule_id": "new-rule"})
+        session.post.side_effect = [
+            FakeResponse({"rule_id": "new-rule"}),
+            FakeResponse({"status": "success"}),
+        ]
         client = TwitterApiIoRuleClient("secret", session=session)
 
         rule_id = client.ensure_rule("qq-bot-tibo", "from:thsottiaux -filter:nativeretweets", 5)
 
         self.assertEqual(rule_id, "new-rule")
-        self.assertEqual(session.post.call_args.kwargs["data"]["interval_seconds"], 5)
+        add_call, update_call = session.post.call_args_list
+        self.assertEqual(add_call.kwargs["json"]["interval_seconds"], 5)
+        self.assertEqual(update_call.kwargs["json"]["is_effect"], 1)
 
     def test_rule_event_normalizes_only_target_author(self):
         posts = posts_from_stream_event(
