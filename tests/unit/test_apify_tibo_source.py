@@ -214,6 +214,40 @@ class ApifyTiboSourceTest(unittest.TestCase):
         self.assertEqual(source.last_run_metadata["usage_total_usd"], 0)
         self.assertEqual(source.last_run_metadata["status"], "SUCCEEDED")
 
+    def test_maximedupre_reads_latest_run_cost_when_sync_header_is_missing(self):
+        session = Mock()
+        session.post.return_value = FakeResponse([])
+        session.get.return_value = FakeResponse(
+            {
+                "data": {
+                    "items": [
+                        {
+                            "id": "run-latest",
+                            "status": "SUCCEEDED",
+                            "usageTotalUsd": 0,
+                            "chargedEventCounts": {},
+                        }
+                    ]
+                }
+            }
+        )
+        source = ApifyTiboSource(
+            "secret",
+            "thsottiaux",
+            actor_id=MAXIMEDUPRE_ACTOR_ID,
+            session=session,
+        )
+
+        source.fetch_since_id(
+            "2077632589498913087",
+            datetime(2026, 7, 16, 3, tzinfo=timezone.utc),
+            datetime(2026, 7, 16, 4, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual(source.last_run_metadata["run_id"], "run-latest")
+        self.assertEqual(source.last_run_metadata["usage_total_usd"], 0)
+        self.assertEqual(session.get.call_args.kwargs["params"], {"limit": 1, "desc": 1})
+
 
 if __name__ == "__main__":
     unittest.main()

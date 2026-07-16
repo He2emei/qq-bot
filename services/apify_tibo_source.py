@@ -101,6 +101,8 @@ class ApifyTiboSource:
         if run_id:
             self.last_run_metadata["run_id"] = str(run_id)
             self._load_run_metadata(str(run_id))
+        elif self.actor_id == MAXIMEDUPRE_ACTOR_ID:
+            self._load_latest_run_metadata()
 
         if not isinstance(payload, list):
             raise TiboSourceError("Apify Actor 返回格式不是列表")
@@ -127,6 +129,32 @@ class ApifyTiboSource:
                 "status": data.get("status") or self.last_run_metadata["status"],
                 "usage_total_usd": data.get("usageTotalUsd"),
                 "charged_event_counts": data.get("chargedEventCounts"),
+            }
+        )
+
+    def _load_latest_run_metadata(self):
+        try:
+            response = self.session.get(
+                f"{self.base_url}/v2/acts/{self.actor_id}/runs",
+                headers={"Authorization": f"Bearer {self.api_token}"},
+                params={"limit": 1, "desc": 1},
+                timeout=(5, 15),
+            )
+            response.raise_for_status()
+            payload = response.json()
+        except (requests.RequestException, RuntimeError, ValueError):
+            return
+        data = payload.get("data", {}) if isinstance(payload, dict) else {}
+        items = data.get("items", []) if isinstance(data, dict) else []
+        if not items or not isinstance(items[0], dict):
+            return
+        run = items[0]
+        self.last_run_metadata.update(
+            {
+                "run_id": run.get("id"),
+                "status": run.get("status") or self.last_run_metadata["status"],
+                "usage_total_usd": run.get("usageTotalUsd"),
+                "charged_event_counts": run.get("chargedEventCounts"),
             }
         )
 
