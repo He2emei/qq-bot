@@ -44,7 +44,7 @@ Apify Free 模式默认每 8 小时最多取 25 条，遵守该 Actor 对免费�
 - `deploy/tibo-radar-apify-shadow-stop.timer` 在 48 小时后自动停用抓取 timer，脚本自身也有 48 小时硬截止；
 - 状态写入 `data/tibo_radar_apify_shadow_state.json`；
 - 对账日志写入 `data/tibo_radar_apify_shadow_observations.jsonl`；
-- 日志保存帖子 ID、时间、原创/回复/引用/转推分类、URL、Actor 运行耗时与可用的实际费用，不保存正文；
+- 日志保存帖子 ID、时间、原创/回复/引用分类、URL、Actor 运行耗时与可用的实际费用，不保存正文；纯转推按 Radar 产品规则在上游排除；
 - Actor 错误也写入 JSONL，但不会推进增量水位；
 - 不导入 QQ sender，不会向群发送消息。
 

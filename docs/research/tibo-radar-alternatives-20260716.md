@@ -83,7 +83,7 @@ Apify Free 每月提供 `$5` 平台额度且超额硬阻断；不同 Store Actor
 对两个新 Actor 各运行 48 小时，先用 30 分钟频率，单次 `maxItems=4`，每次设置 `maxTotalChargeUsd`：
 
 1. 与现有 TwitterAPI.io 或人工时间线逐条按 tweet ID 对账；
-2. 单独统计原创、回复、引用、转推是否齐全；
+2. 单独统计原创、回复、引用是否齐全，并确认产品明确排除的纯转推没有混入；
 3. 记录实际 `usageTotalUsd`、运行时长、空结果/错误 envelope；
 4. 连续 12 次成功后再升到 15 分钟；
 5. 任一 Actor 连续两次漏掉相同帖子、字段漂移或出现 BLOCKED，就不升为主源。
