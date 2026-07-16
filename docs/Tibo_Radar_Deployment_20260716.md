@@ -35,12 +35,12 @@ TIBO_RADAR_APIFY_RUN_TIMEOUT_SECONDS=180
 
 Apify Free 模式默认每 8 小时最多取 25 条，遵守该 Actor 对免费用户“每天 3 次、每次 25 条、间隔至少 30 分钟”的限制。按公开价 `$1/1000 tweets` 做保守估算，满额约 `$2.25/30天`；2026-07-16 从 tai261 实测一次返回 25 条，运行费用为 `$0.0002`。它由每月 `$5` 免费额度覆盖，但发现延迟约 8 小时，且单个 8 小时窗口超过 25 条时仍可能漏帖。
 
-## 5 分钟 Apify 增量影子验证
+## 1 分钟尝试触发的 Apify 增量影子验证
 
 `maximedupre~twitter-scraper` 支持 `sinceId`，空增量实测不产生结果费。仓库提供独立的只读影子任务：
 
 - `scripts/tibo_radar_apify_shadow.py` 每次只运行一轮；
-- `deploy/tibo-radar-apify-shadow.timer` 按墙钟每 5 分钟触发；
+- `deploy/tibo-radar-apify-shadow.timer` 按墙钟每分钟尝试触发；oneshot service 仍在运行时 systemd 不会启动并发实例，因此实际间隔由 Actor 的 1～4 分钟耗时决定；
 - `deploy/tibo-radar-apify-shadow-stop.timer` 在 48 小时后自动停用抓取 timer，脚本自身也有 48 小时硬截止；
 - 状态写入 `data/tibo_radar_apify_shadow_state.json`；
 - 对账日志写入 `data/tibo_radar_apify_shadow_observations.jsonl`；
@@ -55,7 +55,7 @@ TIBO_RADAR_APIFY_API_TOKEN=
 TIBO_RADAR_HANDLE=thsottiaux
 TIBO_RADAR_APIFY_API_BASE_URL=https://api.apify.com
 TIBO_RADAR_APIFY_MAX_ITEMS=10
-TIBO_RADAR_APIFY_RUN_TIMEOUT_SECONDS=180
+TIBO_RADAR_APIFY_RUN_TIMEOUT_SECONDS=300
 ```
 
 启用前复制两组 service/timer 到 `/etc/systemd/system/`，执行 daemon-reload 后同时启动抓取 timer 和 stop timer。48 小时后任务自动停止，再根据 JSONL 与现有信源对账；切换正式 Radar 是另一个独立步骤。

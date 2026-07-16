@@ -1,8 +1,8 @@
 [Unit]
-Description=Poll Tibo through Apify every five minutes for shadow validation
+Description=Attempt Tibo Apify shadow polling every minute without overlap
 
 [Timer]
-OnCalendar=*-*-* *:0/5:00
+OnCalendar=*-*-* *:*:00
 AccuracySec=15s
 Persistent=true
 Unit=tibo-radar-apify-shadow.service

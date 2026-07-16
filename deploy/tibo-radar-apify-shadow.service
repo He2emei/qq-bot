@@ -13,4 +13,4 @@ PrivateTmp=true
 ProtectSystem=full
 ReadWritePaths=/root/tai/qq-bot/data
 UMask=0077
-TimeoutStartSec=240
+TimeoutStartSec=360

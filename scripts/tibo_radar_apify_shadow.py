@@ -32,7 +32,7 @@ def main():
         base_url=os.getenv("TIBO_RADAR_APIFY_API_BASE_URL", "https://api.apify.com"),
         max_items=int(os.getenv("TIBO_RADAR_APIFY_MAX_ITEMS", "10")),
         run_timeout_seconds=int(
-            os.getenv("TIBO_RADAR_APIFY_RUN_TIMEOUT_SECONDS", "180")
+            os.getenv("TIBO_RADAR_APIFY_RUN_TIMEOUT_SECONDS", "300")
         ),
     )
     result = run_shadow_check(source, args.state_path, args.log_path)
