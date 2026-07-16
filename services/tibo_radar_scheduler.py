@@ -7,6 +7,12 @@ from services.tibo_radar_factory import build_tibo_radar
 from services.tibo_radar_stream import TwitterApiIoStreamWorker
 
 
+def _poll_interval_seconds(settings=config):
+    if settings.TIBO_RADAR_PROVIDER == "apify":
+        return max(28800, settings.TIBO_RADAR_APIFY_POLL_INTERVAL_SECONDS)
+    return settings.TIBO_RADAR_POLL_INTERVAL_SECONDS
+
+
 def start_tibo_radar_scheduler():
     radar = build_tibo_radar()
     if radar is None:
@@ -29,7 +35,7 @@ def start_tibo_radar_scheduler():
     scheduler.add_job(
         check_job,
         "interval",
-        seconds=config.TIBO_RADAR_POLL_INTERVAL_SECONDS,
+        seconds=_poll_interval_seconds(),
         timezone="Asia/Shanghai",
         id="check_tibo_radar_job",
         max_instances=1,

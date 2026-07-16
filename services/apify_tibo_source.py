@@ -8,6 +8,8 @@ from services.tibo_radar_service import (
     parse_tibo_datetime,
 )
 
+SEEMUAPPS_FREE_ACTOR_ID = "seemuapps~x-tweet-scraper"
+
 
 class ApifyTiboSource:
     """Fetch a small recent timeline through an Apify Store Actor."""
@@ -16,9 +18,9 @@ class ApifyTiboSource:
         self,
         api_token: str,
         handle: str,
-        actor_id: str = "dami_studio~tweet-scraper",
+        actor_id: str = SEEMUAPPS_FREE_ACTOR_ID,
         base_url: str = "https://api.apify.com",
-        max_items: int = 4,
+        max_items: int = 25,
         run_timeout_seconds: int = 180,
         session=None,
     ):
@@ -26,7 +28,11 @@ class ApifyTiboSource:
         self.handle = handle.lstrip("@")
         self.actor_id = actor_id
         self.base_url = base_url.rstrip("/")
-        self.max_items = max(1, int(max_items))
+        requested_max_items = max(1, int(max_items))
+        if self.actor_id == SEEMUAPPS_FREE_ACTOR_ID:
+            self.max_items = min(25, requested_max_items)
+        else:
+            self.max_items = requested_max_items
         self.run_timeout_seconds = int(run_timeout_seconds)
         self.session = session or requests.Session()
 
@@ -59,11 +65,7 @@ class ApifyTiboSource:
                 f"{self.base_url}/v2/acts/{self.actor_id}/run-sync-get-dataset-items",
                 headers={"Authorization": f"Bearer {self.api_token}"},
                 params={"timeout": self.run_timeout_seconds},
-                json={
-                    "twitterHandles": [self.handle],
-                    "maxItems": self.max_items,
-                    "includeReplies": True,
-                },
+                json=self._actor_input(),
                 timeout=(10, self.run_timeout_seconds + 15),
             )
             response.raise_for_status()
@@ -77,8 +79,23 @@ class ApifyTiboSource:
             raise TiboSourceError("Apify Actor 未返回时间线数据")
         return payload
 
+    def _actor_input(self):
+        if self.actor_id == SEEMUAPPS_FREE_ACTOR_ID:
+            return {
+                "query": f"from:{self.handle} -filter:retweets",
+                "queryType": "Latest",
+                "maxItems": self.max_items,
+            }
+        return {
+            "twitterHandles": [self.handle],
+            "maxItems": self.max_items,
+            "includeReplies": True,
+        }
+
     def _normalize_item(self, item, since, until):
-        post_id = str(item.get("id") or item.get("id_str") or "").strip()
+        post_id = str(
+            item.get("id") or item.get("id_str") or item.get("tweetId") or ""
+        ).strip()
         text = str(item.get("text") or item.get("full_text") or "").strip()
         created_value = item.get("createdAt") or item.get("created_at")
         if not post_id or not text or not created_value:
@@ -94,7 +111,12 @@ class ApifyTiboSource:
         ).lstrip("@")
         if username.lower() != self.handle.lower():
             return True, None
-        if item.get("isRetweet") or item.get("retweeted_tweet") or item.get("retweetedTweet"):
+        if (
+            item.get("isRetweet")
+            or item.get("retweeted_tweet")
+            or item.get("retweetedTweet")
+            or text.upper().startswith("RT @")
+        ):
             return True, None
 
         created_at = parse_tibo_datetime(str(created_value))

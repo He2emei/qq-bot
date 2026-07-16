@@ -60,6 +60,9 @@ TIBO_RADAR_API_BASE_URL = os.getenv("TIBO_RADAR_API_BASE_URL", "https://api.twit
 TIBO_RADAR_HANDLE = os.getenv("TIBO_RADAR_HANDLE", "thsottiaux").lstrip("@")
 TIBO_RADAR_GROUP_ID = int(os.getenv("TIBO_RADAR_GROUP_ID", "1105591264"))
 TIBO_RADAR_POLL_INTERVAL_SECONDS = int(os.getenv("TIBO_RADAR_POLL_INTERVAL_SECONDS", "900"))
+TIBO_RADAR_APIFY_POLL_INTERVAL_SECONDS = int(
+    os.getenv("TIBO_RADAR_APIFY_POLL_INTERVAL_SECONDS", "28800")
+)
 TIBO_RADAR_STATE_PATH = os.getenv("TIBO_RADAR_STATE_PATH", "data/tibo_radar_state.json")
 TIBO_RADAR_BOOTSTRAP_SEND = os.getenv("TIBO_RADAR_BOOTSTRAP_SEND", "false").lower() in {
     "1", "true", "yes", "on"
@@ -77,9 +80,9 @@ TIBO_RADAR_APIFY_API_BASE_URL = os.getenv(
     "TIBO_RADAR_APIFY_API_BASE_URL", "https://api.apify.com"
 )
 TIBO_RADAR_APIFY_ACTOR_ID = os.getenv(
-    "TIBO_RADAR_APIFY_ACTOR_ID", "dami_studio~tweet-scraper"
+    "TIBO_RADAR_APIFY_ACTOR_ID", "seemuapps~x-tweet-scraper"
 )
-TIBO_RADAR_APIFY_MAX_ITEMS = int(os.getenv("TIBO_RADAR_APIFY_MAX_ITEMS", "4"))
+TIBO_RADAR_APIFY_MAX_ITEMS = int(os.getenv("TIBO_RADAR_APIFY_MAX_ITEMS", "25"))
 TIBO_RADAR_APIFY_RUN_TIMEOUT_SECONDS = int(
     os.getenv("TIBO_RADAR_APIFY_RUN_TIMEOUT_SECONDS", "180")
 )

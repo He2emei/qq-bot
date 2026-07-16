@@ -25,21 +25,22 @@ TIBO_RADAR_RULE_INTERVAL_SECONDS=5
 # 切换 Apify 时改为 TIBO_RADAR_PROVIDER=apify，并配置：
 TIBO_RADAR_APIFY_API_TOKEN=
 TIBO_RADAR_APIFY_API_BASE_URL=https://api.apify.com
-TIBO_RADAR_APIFY_ACTOR_ID=dami_studio~tweet-scraper
-TIBO_RADAR_APIFY_MAX_ITEMS=4
+TIBO_RADAR_APIFY_ACTOR_ID=seemuapps~x-tweet-scraper
+TIBO_RADAR_APIFY_MAX_ITEMS=25
+TIBO_RADAR_APIFY_POLL_INTERVAL_SECONDS=28800
 TIBO_RADAR_APIFY_RUN_TIMEOUT_SECONDS=180
 ```
 
 所选 provider 没有对应凭据时调度器安全禁用，不进行网络请求或 QQ 发送。首次启用默认只建立水位，不补发旧帖；之后按 tweet ID 和群号去重。两个 provider 共享同一状态文件，因此切换不会重复推送已经完成的帖子。发送失败不丢失，下次轮询会先重试。
 
-Apify 默认每 15 分钟最多取 4 条。按 Actor 当前公开价 `$0.30/1000 tweets`，理论结果费约 `$3.46/30天`，低于 Apify Free 每月 `$5` 额度；上线前仍需通过 Apify Console 核对实际 Store 用量和额外运行费用。免费账户不应绑定可产生超额账单的付费方式。
+Apify Free 模式默认每 8 小时最多取 25 条，遵守该 Actor 对免费用户“每天 3 次、每次 25 条、间隔至少 30 分钟”的限制。按公开价 `$1/1000 tweets` 做保守估算，满额约 `$2.25/30天`；2026-07-16 从 tai261 实测一次返回 25 条，运行费用为 `$0.0002`。它由每月 `$5` 免费额度覆盖，但发现延迟约 8 小时，且单个 8 小时窗口超过 25 条时仍可能漏帖。
 
 ## 验证
 
 先运行不发送 QQ 的测试：
 
 ```bash
-venv/bin/python -m unittest tests.unit.test_tibo_radar_service tests.unit.test_tibo_radar_factory tests.unit.test_tibo_radar_stream tests.unit.test_apify_tibo_source -v
+venv/bin/python -m unittest tests.unit.test_tibo_radar_service tests.unit.test_tibo_radar_factory tests.unit.test_tibo_radar_stream tests.unit.test_apify_tibo_source tests.unit.test_tibo_radar_scheduler -v
 ```
 
 启用 key 并重启后检查：

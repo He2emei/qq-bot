@@ -53,7 +53,7 @@ Apify 官方 Free 计划是 `$0`、无需信用卡，每个账期有 `$5` 可用
 
 X 数据本身由 Store 中第三方社区 Actor 提供，并非 Apify 或 X 的官方数据源。例如 `seemuapps/x-tweet-scraper` 声称无需登录，Free 用户每次最多 25 条、每天 3 次、两次至少间隔 30 分钟；`cryptosignals/twitter-scraper` 则按 `$0.005/tweet`，并明确承认依赖 public endpoints、syndication 和 Nitter mirrors 等回退源。[每天 3 次的 Actor](https://apify.com/seemuapps/x-tweet-scraper)、[多回退源 Actor](https://apify.com/cryptosignals/twitter-scraper)
 
-2026-07-16 从 tai261 实测 `https://api.apify.com` 能在约 1.90 秒到达应用层（根路径返回 HTTP 404，说明 DNS/TLS/HTTP 链路正常）。它可以做到持续零付费，但免费 Actor 的 3 次/天意味着约 8 小时级发现延迟；社区抓取器还可能随 X 页面、Guest Token 或 Nitter 实例变化而失效。适合作为备用对账源，不建议作为唯一实时源。
+2026-07-16 从 tai261 实测 `https://api.apify.com` 能在约 1.90 秒到达应用层（根路径返回 HTTP 404，说明 DNS/TLS/HTTP 链路正常）。同日进一步用 Free 账户实测：`dami_studio/tweet-scraper` 因 X 反爬返回 `BLOCKED`；`xquik/x-tweet-scraper` 能返回 4 条，但 Free 账户实际扣 `$0.06`，不适合高频轮询；`seemuapps/x-tweet-scraper` 成功返回最近 25 条（含原创和回复），单次运行费用为 `$0.0002`。后者每天最多 3 次，按公开 `$1/1000 tweets` 保守估算满额约 `$2.25/30天`，由每月 `$5` 免费额度覆盖，但发现延迟约 8 小时，且单窗口超过 25 条时可能漏帖。社区抓取器还可能随 X 页面或接口变化而失效，不能承诺实时性。
 
 #### C. SocialData：便宜但不免费
 

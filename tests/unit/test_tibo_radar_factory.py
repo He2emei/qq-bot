@@ -16,8 +16,8 @@ def settings(api_key="", provider="twitterapi", apify_token=""):
         TIBO_RADAR_BOOTSTRAP_SEND=False,
         TIBO_RADAR_APIFY_API_TOKEN=apify_token,
         TIBO_RADAR_APIFY_API_BASE_URL="https://api.apify.com",
-        TIBO_RADAR_APIFY_ACTOR_ID="dami_studio~tweet-scraper",
-        TIBO_RADAR_APIFY_MAX_ITEMS=4,
+        TIBO_RADAR_APIFY_ACTOR_ID="seemuapps~x-tweet-scraper",
+        TIBO_RADAR_APIFY_MAX_ITEMS=25,
         TIBO_RADAR_APIFY_RUN_TIMEOUT_SECONDS=180,
     )
 
@@ -42,7 +42,7 @@ class TiboRadarFactoryTest(unittest.TestCase):
 
         self.assertEqual(radar.group_id, 1105591264)
         self.assertEqual(radar.source.handle, "thsottiaux")
-        self.assertEqual(radar.source.max_items, 4)
+        self.assertEqual(radar.source.max_items, 25)
 
 
 if __name__ == "__main__":

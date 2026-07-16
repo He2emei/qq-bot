@@ -25,7 +25,7 @@ class ApifyTiboSourceTest(unittest.TestCase):
             "apify-secret",
             "thsottiaux",
             session=session,
-            max_items=4,
+            max_items=25,
         )
         return source, session
 
@@ -33,7 +33,7 @@ class ApifyTiboSourceTest(unittest.TestCase):
         source, session = self.make_source(
             [
                 {
-                    "id": "401",
+                    "tweetId": "401",
                     "text": "new post",
                     "createdAt": "2026-07-16T03:00:00Z",
                     "author": {"userName": "thsottiaux"},
@@ -64,13 +64,17 @@ class ApifyTiboSourceTest(unittest.TestCase):
         self.assertTrue(posts[1].is_reply)
         self.assertIn("信源: Apify Store Actor", format_tibo_post(posts[0]))
         request = session.post.call_args
-        self.assertEqual(request.kwargs["json"]["twitterHandles"], ["thsottiaux"])
-        self.assertEqual(request.kwargs["json"]["maxItems"], 4)
-        self.assertTrue(request.kwargs["json"]["includeReplies"])
+        self.assertEqual(
+            request.kwargs["json"]["query"],
+            "from:thsottiaux -filter:retweets",
+        )
+        self.assertEqual(request.kwargs["json"]["queryType"], "Latest")
+        self.assertEqual(request.kwargs["json"]["maxItems"], 25)
         self.assertEqual(
             request.kwargs["headers"]["Authorization"], "Bearer apify-secret"
         )
         self.assertNotIn("token", request.kwargs["params"])
+        self.assertIn("seemuapps~x-tweet-scraper", request.args[0])
 
     def test_fetch_since_excludes_native_retweets_and_old_items(self):
         source, _ = self.make_source(
@@ -86,6 +90,11 @@ class ApifyTiboSourceTest(unittest.TestCase):
                     "text": "too old",
                     "createdAt": "2026-07-15T03:00:00Z",
                 },
+                {
+                    "id": "406",
+                    "text": "RT @someone: unflagged native retweet",
+                    "createdAt": "2026-07-16T03:01:00Z",
+                },
             ]
         )
 
@@ -95,6 +104,11 @@ class ApifyTiboSourceTest(unittest.TestCase):
         )
 
         self.assertEqual(posts, [])
+
+    def test_free_actor_caps_max_items_at_25(self):
+        source = ApifyTiboSource("secret", "thsottiaux", max_items=100)
+
+        self.assertEqual(source.max_items, 25)
 
     def test_fetch_since_fails_on_actor_error_only_response(self):
         source, _ = self.make_source([{"errorCode": "RATE_LIMITED"}])
