@@ -21,13 +21,23 @@ class TiboRadarSchedulerTest(unittest.TestCase):
         )
         self.assertEqual(_poll_interval_seconds(settings), 900)
 
-    def test_apify_interval_cannot_exceed_three_runs_per_day(self):
+    def test_seemuapps_interval_cannot_exceed_three_runs_per_day(self):
         settings = SimpleNamespace(
             TIBO_RADAR_PROVIDER="apify",
             TIBO_RADAR_POLL_INTERVAL_SECONDS=900,
             TIBO_RADAR_APIFY_POLL_INTERVAL_SECONDS=60,
+            TIBO_RADAR_APIFY_ACTOR_ID="seemuapps~x-tweet-scraper",
         )
         self.assertEqual(_poll_interval_seconds(settings), 28800)
+
+    def test_incremental_apify_actor_can_poll_every_five_minutes(self):
+        settings = SimpleNamespace(
+            TIBO_RADAR_PROVIDER="apify",
+            TIBO_RADAR_POLL_INTERVAL_SECONDS=900,
+            TIBO_RADAR_APIFY_POLL_INTERVAL_SECONDS=300,
+            TIBO_RADAR_APIFY_ACTOR_ID="maximedupre~twitter-scraper",
+        )
+        self.assertEqual(_poll_interval_seconds(settings), 300)
 
 
 if __name__ == "__main__":

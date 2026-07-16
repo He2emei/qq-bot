@@ -5,6 +5,9 @@ data/ze_account.json
 data/memory.json
 data/yqm.json
 data/rss_state.json
+data/tibo_radar_apify_shadow_state.json
+data/tibo_radar_apify_shadow_observations.jsonl
+.env.tibo-shadow
 
 # 数据库文件 - 包含用户数据和FAQ内容
 data/machines.db

@@ -9,6 +9,7 @@ from services.tibo_radar_service import (
 )
 
 SEEMUAPPS_FREE_ACTOR_ID = "seemuapps~x-tweet-scraper"
+MAXIMEDUPRE_ACTOR_ID = "maximedupre~twitter-scraper"
 
 
 class ApifyTiboSource:
@@ -37,7 +38,12 @@ class ApifyTiboSource:
         self.session = session or requests.Session()
 
     def fetch_since(self, since, until) -> List[TiboPost]:
-        payload = self._run_actor()
+        return self.fetch_since_id(None, since, until)
+
+    def fetch_since_id(self, since_id, since, until) -> List[TiboPost]:
+        payload = self._run_actor(since_id=since_id)
+        if not payload and self.actor_id == MAXIMEDUPRE_ACTOR_ID:
+            return []
         posts = []
         error_rows = 0
         recognized_rows = 0
@@ -59,13 +65,16 @@ class ApifyTiboSource:
         deduplicated = {post.post_id: post for post in posts}
         return sorted(deduplicated.values(), key=lambda post: (post.created_at, post.post_id))
 
-    def _run_actor(self):
+    def _run_actor(self, since_id=None):
         try:
             response = self.session.post(
                 f"{self.base_url}/v2/acts/{self.actor_id}/run-sync-get-dataset-items",
                 headers={"Authorization": f"Bearer {self.api_token}"},
-                params={"timeout": self.run_timeout_seconds},
-                json=self._actor_input(),
+                params={
+                    "timeout": self.run_timeout_seconds,
+                    "maxTotalChargeUsd": 0.01,
+                },
+                json=self._actor_input(since_id=since_id),
                 timeout=(10, self.run_timeout_seconds + 15),
             )
             response.raise_for_status()
@@ -75,17 +84,31 @@ class ApifyTiboSource:
 
         if not isinstance(payload, list):
             raise TiboSourceError("Apify Actor 返回格式不是列表")
-        if not payload:
+        if not payload and self.actor_id != MAXIMEDUPRE_ACTOR_ID:
             raise TiboSourceError("Apify Actor 未返回时间线数据")
         return payload
 
-    def _actor_input(self):
+    def _actor_input(self, since_id=None):
         if self.actor_id == SEEMUAPPS_FREE_ACTOR_ID:
             return {
                 "query": f"from:{self.handle} -filter:retweets",
                 "queryType": "Latest",
                 "maxItems": self.max_items,
             }
+        if self.actor_id == MAXIMEDUPRE_ACTOR_ID:
+            actor_input = {
+                "target": "searchPosts",
+                "fromUsers": [self.handle],
+                "searchMode": "latest",
+                "shouldIncludeOriginalPosts": True,
+                "shouldIncludeQuotePosts": True,
+                "shouldIncludeReplies": True,
+                "shouldIncludeReposts": False,
+                "maxNbItemsToScrape": self.max_items,
+            }
+            if since_id:
+                actor_input["sinceId"] = str(since_id)
+            return actor_input
         return {
             "twitterHandles": [self.handle],
             "maxItems": self.max_items,
@@ -94,10 +117,20 @@ class ApifyTiboSource:
 
     def _normalize_item(self, item, since, until):
         post_id = str(
-            item.get("id") or item.get("id_str") or item.get("tweetId") or ""
+            item.get("id")
+            or item.get("id_str")
+            or item.get("tweetId")
+            or item.get("postId")
+            or ""
         ).strip()
-        text = str(item.get("text") or item.get("full_text") or "").strip()
-        created_value = item.get("createdAt") or item.get("created_at")
+        text = str(
+            item.get("text") or item.get("full_text") or item.get("postText") or ""
+        ).strip()
+        created_value = (
+            item.get("createdAt")
+            or item.get("created_at")
+            or item.get("postDateTime")
+        )
         if not post_id or not text or not created_value:
             return False, None
 
@@ -107,6 +140,7 @@ class ApifyTiboSource:
             or author.get("username")
             or item.get("userName")
             or item.get("username")
+            or item.get("authorHandle")
             or self.handle
         ).lstrip("@")
         if username.lower() != self.handle.lower():
@@ -129,12 +163,14 @@ class ApifyTiboSource:
             url=str(
                 item.get("url")
                 or item.get("tweetUrl")
+                or item.get("postUrl")
                 or f"https://x.com/{self.handle}/status/{post_id}"
             ),
             is_reply=bool(
                 item.get("isReply")
                 or item.get("inReplyToId")
                 or item.get("in_reply_to_status_id_str")
+                or item.get("replyToPostId")
             ),
             source_label="Apify Store Actor（非 X 官方 API）",
         )

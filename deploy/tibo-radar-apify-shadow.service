@@ -1,0 +1,16 @@
+[Unit]
+Description=Tibo Radar Apify shadow check (no QQ delivery)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/tai/qq-bot
+EnvironmentFile=/root/tai/qq-bot/.env.tibo-shadow
+ExecStart=/root/tai/qq-bot/venv/bin/python scripts/tibo_radar_apify_shadow.py
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/root/tai/qq-bot/data
+UMask=0077
+TimeoutStartSec=240

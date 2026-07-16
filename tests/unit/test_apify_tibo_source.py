@@ -2,7 +2,7 @@ import unittest
 from datetime import datetime, timezone
 from unittest.mock import Mock
 
-from services.apify_tibo_source import ApifyTiboSource
+from services.apify_tibo_source import ApifyTiboSource, MAXIMEDUPRE_ACTOR_ID
 from services.tibo_radar_service import TiboSourceError, format_tibo_post
 
 
@@ -127,6 +127,60 @@ class ApifyTiboSourceTest(unittest.TestCase):
                 datetime(2026, 7, 16, 2, tzinfo=timezone.utc),
                 datetime(2026, 7, 16, 4, tzinfo=timezone.utc),
             )
+
+    def test_maximedupre_fetch_uses_incremental_id_and_normalizes_posts(self):
+        session = Mock()
+        session.post.return_value = FakeResponse(
+            [
+                {
+                    "postId": "2077632589498913088",
+                    "postText": "A reply",
+                    "postDateTime": "2026-07-16T03:01:00.000Z",
+                    "postUrl": "https://x.com/thsottiaux/status/2077632589498913088",
+                    "authorHandle": "thsottiaux",
+                    "replyToPostId": "2077632589498913000",
+                }
+            ]
+        )
+        source = ApifyTiboSource(
+            "secret",
+            "thsottiaux",
+            actor_id=MAXIMEDUPRE_ACTOR_ID,
+            max_items=4,
+            session=session,
+        )
+
+        posts = source.fetch_since_id(
+            "2077632589498913087",
+            datetime(2026, 7, 16, 3, tzinfo=timezone.utc),
+            datetime(2026, 7, 16, 4, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual([post.post_id for post in posts], ["2077632589498913088"])
+        self.assertTrue(posts[0].is_reply)
+        actor_input = session.post.call_args.kwargs["json"]
+        self.assertEqual(actor_input["fromUsers"], ["thsottiaux"])
+        self.assertEqual(actor_input["sinceId"], "2077632589498913087")
+        self.assertEqual(actor_input["maxNbItemsToScrape"], 4)
+        self.assertFalse(actor_input["shouldIncludeReposts"])
+
+    def test_maximedupre_empty_incremental_result_is_valid(self):
+        session = Mock()
+        session.post.return_value = FakeResponse([])
+        source = ApifyTiboSource(
+            "secret",
+            "thsottiaux",
+            actor_id=MAXIMEDUPRE_ACTOR_ID,
+            session=session,
+        )
+
+        posts = source.fetch_since_id(
+            "2077632589498913087",
+            datetime(2026, 7, 16, 3, tzinfo=timezone.utc),
+            datetime(2026, 7, 16, 4, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual(posts, [])
 
 
 if __name__ == "__main__":

@@ -1,0 +1,12 @@
+[Unit]
+Description=Poll Tibo through Apify every five minutes for shadow validation
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=5min
+AccuracySec=15s
+Persistent=true
+Unit=tibo-radar-apify-shadow.service
+
+[Install]
+WantedBy=timers.target

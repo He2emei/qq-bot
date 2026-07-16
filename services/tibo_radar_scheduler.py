@@ -3,13 +3,20 @@ from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import config
+from services.apify_tibo_source import SEEMUAPPS_FREE_ACTOR_ID
 from services.tibo_radar_factory import build_tibo_radar
 from services.tibo_radar_stream import TwitterApiIoStreamWorker
 
 
 def _poll_interval_seconds(settings=config):
-    if settings.TIBO_RADAR_PROVIDER == "apify":
+    if (
+        settings.TIBO_RADAR_PROVIDER == "apify"
+        and getattr(settings, "TIBO_RADAR_APIFY_ACTOR_ID", SEEMUAPPS_FREE_ACTOR_ID)
+        == SEEMUAPPS_FREE_ACTOR_ID
+    ):
         return max(28800, settings.TIBO_RADAR_APIFY_POLL_INTERVAL_SECONDS)
+    if settings.TIBO_RADAR_PROVIDER == "apify":
+        return settings.TIBO_RADAR_APIFY_POLL_INTERVAL_SECONDS
     return settings.TIBO_RADAR_POLL_INTERVAL_SECONDS
 
 
