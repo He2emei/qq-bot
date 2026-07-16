@@ -19,6 +19,9 @@ class TiboSourceError(RuntimeError):
     """Raised when the configured Tibo source cannot return valid data."""
 
 
+DEFAULT_TIBO_SOURCE_LABEL = "TwitterAPI.io（非 X 官方 API）"
+
+
 @dataclass(frozen=True)
 class TiboPost:
     post_id: str
@@ -26,6 +29,7 @@ class TiboPost:
     created_at: datetime
     url: str
     is_reply: bool = False
+    source_label: str = DEFAULT_TIBO_SOURCE_LABEL
 
 
 @dataclass(frozen=True)
@@ -205,6 +209,7 @@ class TiboRadarStateStore:
                     "created_at": post.created_at.isoformat(),
                     "url": post.url,
                     "is_reply": post.is_reply,
+                    "source_label": post.source_label,
                     "received_at": received_at.isoformat(),
                 },
             )
@@ -221,6 +226,9 @@ class TiboRadarStateStore:
                         created_at=parse_tibo_datetime(str(item["created_at"])),
                         url=str(item["url"]),
                         is_reply=bool(item.get("is_reply")),
+                        source_label=str(
+                            item.get("source_label") or DEFAULT_TIBO_SOURCE_LABEL
+                        ),
                     )
                 )
             except (KeyError, TypeError, TiboSourceError):
@@ -274,7 +282,7 @@ def format_tibo_post(post: TiboPost) -> str:
             "",
             f"发布时间: {post.created_at.astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')}",
             f"原帖: {post.url}",
-            "信源: TwitterAPI.io（非 X 官方 API）",
+            f"信源: {post.source_label}",
         ]
     )
 
@@ -383,6 +391,7 @@ class TiboRadar:
                 self.state_store.mark_completed(item, self.group_id, now)
                 pushed_ids.append(item.post_id)
             else:
+                self.state_store.enqueue_pending([item], now)
                 failed_ids.append(item.post_id)
 
         if advance_checked and not failed_ids:

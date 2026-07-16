@@ -10,7 +10,7 @@ from services.tibo_radar_stream import TwitterApiIoStreamWorker
 def start_tibo_radar_scheduler():
     radar = build_tibo_radar()
     if radar is None:
-        print("Tibo Radar 未配置 API key，调度器未启用", flush=True)
+        print("Tibo Radar 未配置所选 provider 的凭据，调度器未启用", flush=True)
         return None
 
     def check_job():
@@ -37,7 +37,7 @@ def start_tibo_radar_scheduler():
     )
     scheduler.start()
     stream_worker = None
-    if config.TIBO_RADAR_STREAM_ENABLED:
+    if config.TIBO_RADAR_PROVIDER == "twitterapi" and config.TIBO_RADAR_STREAM_ENABLED:
         stream_worker = TwitterApiIoStreamWorker(
             radar=radar,
             api_key=config.TIBO_RADAR_API_KEY,
@@ -49,7 +49,8 @@ def start_tibo_radar_scheduler():
         )
         stream_worker.start()
     print(
-        f"[{datetime.now()}] Tibo Radar 调度器已启动，目标群 {config.TIBO_RADAR_GROUP_ID}",
+        f"[{datetime.now()}] Tibo Radar 调度器已启动，provider={config.TIBO_RADAR_PROVIDER}，"
+        f"目标群 {config.TIBO_RADAR_GROUP_ID}",
         flush=True,
     )
     return scheduler, stream_worker

@@ -3,6 +3,78 @@
 > 调研日期：2026-07-16（Asia/Shanghai）
 > 目标：在 `tai261.xjtumc.com` 上可靠发现并转发 Tibo 的最新公开 X 帖子，尽量不让服务器直连 X，也不在服务器维护 X 登录态。
 
+## 2026-07-16 价格复核与免费替代方案
+
+### 先说结论
+
+- 当前实现使用的是 TwitterAPI.io 的 **Custom Filter Rule + WebSocket**，不是它的按账号订阅 Stream。按账号 Stream 最低是 Starter `$29/月`（含 6 个账号），但自定义规则按与 REST 相同的“每条匹配 tweet”模型收费，不需要购买该套餐。[Stream 套餐](https://twitterapi.io/twitter-stream)、[WebSocket 计费说明](https://twitterapi.io/blog/using-websocket-for-real-time-twitter-data)
+- TwitterAPI.io **没有持续刷新的免费额度**。当前首页和研究优惠页写的是注册赠送 `$0.10` 一次性 credits；某些旧的 `readme`/博客仍写 `$1`，公开资料有冲突，因此应以账户接口返回的实际余额为准。余额可用 `GET /oapi/my/info` 查询。[当前首页](https://twitterapi.io/)、[研究优惠页](https://twitterapi.io/twitter-api-for-research)、[余额接口](https://docs.twitterapi.io/api-reference/endpoint/get_my_info)
+- 对本项目，真正持续花钱的主要不是 Tibo 发帖，而是当前每 15 分钟一次的 `advanced_search` 补漏：即使返回 0 条，普通调用最低也扣 15 credits（`$0.00015`）。按 30 天估算约 `$0.432/月`；再加实时规则匹配到的帖子，每条 15 credits。这个成本很低，但绝不是免费。[TwitterAPI.io 价格页](https://twitterapi.io/pricing)
+- 有持续免费额度且 tai261 已实测可达的明确候选是 **Apify Free**（每月 `$5` 平台额度，但 X Actor 是社区抓取器，可靠性明显低于结构化 API）。RSS.app 虽有 Free 档，但官方 FAQ 同时写明试用结束后 non-Native Feed 会停止；X feed 是否属于可长期运行的 Free feed 需要实际验证，不能先当成确定免费。免费条件下无法同时满足秒级、完整、稳定三项。
+
+### TwitterAPI.io 具体怎样收费
+
+TwitterAPI.io 使用 credits 预付余额：`100,000 credits = $1`。当前公开价格为每条返回 tweet 15 credits，即 `$0.15 / 1,000 tweets`；普通 API 调用即便返回 0 或 1 条，也至少扣 15 credits。手工充值的 credits 不过期；充值奖励 credits 有效期为 30 天。Free 订阅档本身不每月发 credits，新账号的一次性试用赠额也不会重置。[价格页](https://twitterapi.io/pricing)、[订阅档说明](https://twitterapi.io/subscribe)
+
+与本项目有关的三类操作：
+
+| 操作 | 公开计费规则 | 本项目含义 |
+|---|---|---|
+| `advanced_search` | 按返回 tweet 收 15 credits/条；普通调用至少 15 credits | 15 分钟一次，即使一直没有新帖也约 `$0.432/30天` |
+| Custom Filter Rule + WebSocket | WebSocket 文档明确说与 REST 使用同一按 tweet 模型；规则激活后开始计费，未匹配到数据不产生 tweet 费用 | 监控 `from:thsottiaux` 不要求购买 `$29/月` Stream 套餐；每个匹配帖子约 `$0.00015` |
+| 按账号 Stream | Starter `$29/月`，含 6 个账号；后续账号 `$5/月` | 这是另一项低延迟订阅产品，当前实现没有使用，也没有必要为单账号购买 |
+
+当前补漏频率的费用上限估算（不含异常重试和一次查询返回多条历史帖）：
+
+| 补漏间隔 | 每 30 天最低调用费 | `$0.10` 一次性赠额理论可维持 |
+|---:|---:|---:|
+| 15 分钟（当前） | `$0.432` | 约 6.9 天 |
+| 1 小时 | `$0.108` | 约 27.8 天 |
+| 6 小时 | `$0.018` | 约 166 天 |
+| 24 小时 | `$0.0045` | 约 667 天 |
+
+以上只是最低调用费模型。若某次补漏返回 N 条，则该次通常是 `15 × N` credits；WebSocket 收到的匹配帖子也按条计费。规则检查间隔本身没有单独公布的连接费或轮询费，官方只公开“按 tweet”收费。[价格页](https://twitterapi.io/pricing)、[WebSocket FAQ](https://twitterapi.io/blog/using-websocket-for-real-time-twitter-data)
+
+充值并非订阅：官方写明可手工 top-up、无月度最低消费，已充值 credits 不过期；另有 `$29/月` 起的可选订阅档，作用是每月发放 credits、提高 QPS、附加充值奖励，不是使用 Custom Filter Rule 的前置条件。[订阅档说明](https://twitterapi.io/subscribe)
+
+当前 Payment 页面列出的最低单次充值是 `$10`（1,000,000 credits）；这不是月费，也不会自动续费。Free/未订阅档每月发放 0 credits，新账户 QPS 为 0.2（约每 5 秒一次请求）。[充值页](https://twitterapi.io/payment)、[订阅与 QPS](https://twitterapi.io/subscribe)
+
+### 免费与低成本替代方案
+
+#### A. RSS.app Free：X feed 的长期免费资格不明确
+
+RSS.app 官方支持从公开 X/Twitter 用户页生成 RSS。Free 档为 `$0`，提供 2 个 feed、每个最多 5 条、24 小时刷新一次；另有 7 天 Basic 试用，但那是一次性试用，不应和 Free 档混淆。[X RSS 功能](https://rss.app/rss-feed/create-twitter-rss-feed)、[价格与 Free 档](https://rss.app/pricing)
+
+2026-07-16 从 tai261 只读实测 `https://rss.app` 返回 HTTP 200，约 3.24 秒，网络可达。但 RSS.app FAQ 写明试用结束后 non-Native Feeds 会停止，而 Free 指南强调的是 native RSS feeds；因此必须实际创建 `@thsottiaux` feed 并跨过 7 天试用期，才能确认它是否可长期免费。[RSS.app FAQ](https://help.rss.app/en/articles/8822740-faq)、[Free Plan 指南](https://help.rss.app/en/articles/11164162-guide-to-the-free-plan) 即使可用，24 小时刷新和最多 5 条也只适合每日摘要，仍有延迟与遗漏风险。
+
+#### B. Apify Free：每月重置的 `$5` 免费平台额度，但依赖社区 Actor
+
+Apify 官方 Free 计划是 `$0`、无需信用卡，每个账期有 `$5` 可用于 Store Actor 或自建 Actor；未用完不结转，耗尽后 Free 账户会被阻塞到下个账期，不会自动产生超额账单。[Apify 官方价格页](https://apify.com/pricing)
+
+X 数据本身由 Store 中第三方社区 Actor 提供，并非 Apify 或 X 的官方数据源。例如 `seemuapps/x-tweet-scraper` 声称无需登录，Free 用户每次最多 25 条、每天 3 次、两次至少间隔 30 分钟；`cryptosignals/twitter-scraper` 则按 `$0.005/tweet`，并明确承认依赖 public endpoints、syndication 和 Nitter mirrors 等回退源。[每天 3 次的 Actor](https://apify.com/seemuapps/x-tweet-scraper)、[多回退源 Actor](https://apify.com/cryptosignals/twitter-scraper)
+
+2026-07-16 从 tai261 实测 `https://api.apify.com` 能在约 1.90 秒到达应用层（根路径返回 HTTP 404，说明 DNS/TLS/HTTP 链路正常）。它可以做到持续零付费，但免费 Actor 的 3 次/天意味着约 8 小时级发现延迟；社区抓取器还可能随 X 页面、Guest Token 或 Nitter 实例变化而失效。适合作为备用对账源，不建议作为唯一实时源。
+
+#### C. SocialData：便宜但不免费
+
+SocialData 要求账户保持正余额，成功返回数据按 `$0.0002/tweet` 收费。它所谓的免费规则仅是“无数据请求每分钟前 3 次不收费”；一旦查到 Tibo 帖子仍会收费，也没有公开的每月免费数据额度。因此它是低成本备源，不是真正免费方案。[SocialData 官方价格](https://docs.socialdata.tools/getting-started/pricing/)
+
+#### D. X 官方 API：没有免费读取额度
+
+X 当前对新项目采用预付 credits 的按量计费，读取 Post 为 `$0.005/条`，没有持续免费读取额度；可以设消费上限，但这只防止超支，不会让读取免费。相较 TwitterAPI.io，它对这个单账号场景贵约 33 倍，且 tai261 直连 X 生态此前已有网络问题。[X 官方价格](https://docs.x.com/x-api/getting-started/pricing)、[X 用量与余额](https://docs.x.com/x-api/fundamentals/post-cap)
+
+#### E. Nitter、RSSHub、GitHub Actions/Cloudflare Workers：免费计算不等于免费可靠信源
+
+公共 Nitter RSS 不收钱，但 tai261 已对多个实例超时；自建 Nitter 又需要真实 X session tokens 和 Redis/Valkey。[Nitter README](https://github.com/zedeus/nitter) RSSHub 的 X 路由同样需要 X token/key 或可用的 X GraphQL 代理，不能凭空解决上游访问。
+
+GitHub Actions 的标准 runner 对公共仓库免费，私有仓库 Free 账户每月 2,000 分钟；Cloudflare Workers Free 每日 100,000 请求、最多 5 个 Cron Trigger。[GitHub Actions 计费](https://docs.github.com/en/billing/concepts/product-billing/github-actions)、[Cloudflare Workers Free 限额](https://developers.cloudflare.com/workers/platform/limits/) 它们可以免费运行一个境外采集桥，但桥仍需读取 Nitter、RSS.app 或某个付费 API，所以只是免费计算/网络出口，不是新的可靠 X 数据源。GitHub 还明确提示定时任务高峰期可能延迟。[GitHub 定时任务排障](https://docs.github.com/en/actions/how-tos/troubleshoot-workflows)
+
+### 建议
+
+若要求接近实时且不希望维护 X 登录态，建议保留 Custom Filter Rule + WebSocket，把 `advanced_search` 从 15 分钟降到 6 小时或 24 小时，并只在断线恢复时额外补漏。这样长期成本约为 `$0.02/月` 量级（取决于 Tibo 发帖数和异常重试），通常一次很小的手工充值就能运行多年；它不是免费，但比把可靠性押在公开抓取源上更合理。
+
+若原则上必须零付费，则优先 PoC Apify Free；RSS.app 只有在跨过试用期仍能刷新 X feed 后才可加入。应接受数小时到 24 小时延迟，并把产品定位改成“每日 Tibo 摘要”，不能继续承诺实时 Radar。公共 Nitter/RSSHub 只保留人工诊断用途。
+
 ## 已确认的产品边界
 
 - Tibo Radar 作为独立功能实现，不与 AI 早报的来源、状态文件、展示逻辑或目标群配置耦合。
@@ -74,9 +146,9 @@
 运维判断：
 
 - 对一个账号优先使用 `tweet_filter`，接收后立刻按 tweet ID 幂等入库并回 2xx；QQ 转发放到异步任务中。
-- 每 15–30 分钟用 `advanced_search` 对“上次成功水位前移 5 分钟”做重叠补漏，避免 Webhook 短暂失败造成永久丢帖。
+- 每 6–24 小时、进程启动后和 WebSocket 重连后，用 `advanced_search` 对“上次成功水位前移 5 分钟”做重叠补漏；这能避免短暂失败造成永久丢帖，同时不让空查询的最低调用费成为主要成本。
 - 不要每 5 分钟调用 `last_tweets`：若每次都返回 20 条，按现价约为 `$0.003/次`，30 天约 8,640 次，即约 **$25.92/月**；`advanced_search` 的窄时间窗或推送更符合该场景。
-- 供应商关于延迟和可靠性的描述是自述，PoC 必须实测 7–14 天，记录 Tibo 发帖时间、首次收到时间、漏帖数和重复数。
+- 供应商关于延迟和可靠性的描述是自述，PoC 应至少实测 7 天；如需 14 天，应充值少量 credits 或先降低补漏频率。期间记录 Tibo 发帖时间、首次收到时间、漏帖数和重复数。
 
 风险：这是非 X 官方的数据供应商；数据抓取方式、字段和价格都可能变化。不得把 API key 写入仓库或日志，需设置月度预算/用量告警，并保留第二供应商切换点。
 
@@ -164,7 +236,7 @@ provider -> normalize(tweet_id, author, text, created_at, url, media, source)
 
 ## PoC 验收标准
 
-先用 TwitterAPI.io 的试用额度跑 7–14 天，不立即实现多供应商全套：
+先用 TwitterAPI.io 的一次性试用额度跑约 7 天；若要覆盖 14 天，先降低补漏频率或充值少量 credits。不立即实现多供应商全套：
 
 - tai261 连续运行，无浏览器、无 X cookie；
 - 新原创帖/回复/转推的纳入规则有明确测试；

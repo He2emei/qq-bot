@@ -213,8 +213,12 @@ class TiboRadarTest(unittest.TestCase):
     def test_failed_delivery_is_not_marked_and_is_retried(self):
         with TemporaryDirectory() as directory:
             source = Mock()
-            source.fetch_since.side_effect = [[post(100)], [post(101)], [post(101)]]
-            sender = Mock(side_effect=[None, {"status": "ok"}])
+            source.fetch_since.side_effect = [
+                [post(100)],
+                [post(101)],
+                [post(102, 2), post(103, 3), post(104, 4), post(105, 5)],
+            ]
+            sender = Mock(side_effect=[None] + [{"status": "ok"}] * 5)
             radar, store = self.make_radar(directory, source, sender)
             radar.check_and_push(datetime(2026, 7, 16, 2, tzinfo=timezone.utc))
 
@@ -222,8 +226,10 @@ class TiboRadarTest(unittest.TestCase):
             second = radar.check_and_push(datetime(2026, 7, 16, 2, 10, tzinfo=timezone.utc))
 
             self.assertEqual(first.failed_ids, ["101"])
-            self.assertEqual(second.pushed_ids, ["101"])
+            self.assertEqual(second.pushed_ids[0], "101")
+            self.assertEqual(second.pushed_ids[1:], ["102", "103", "104", "105"])
             self.assertTrue(store.is_completed("101", 1105591264))
+            self.assertEqual(store.load().get("pending"), {})
 
     def test_stream_delivery_does_not_advance_search_backfill_watermark(self):
         with TemporaryDirectory() as directory:

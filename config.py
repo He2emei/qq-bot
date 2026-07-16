@@ -54,6 +54,7 @@ DATA_PATHS = {
 }
 
 # === Tibo Radar 配置 ===
+TIBO_RADAR_PROVIDER = os.getenv("TIBO_RADAR_PROVIDER", "twitterapi").strip().lower()
 TIBO_RADAR_API_KEY = os.getenv("TIBO_RADAR_API_KEY", "")
 TIBO_RADAR_API_BASE_URL = os.getenv("TIBO_RADAR_API_BASE_URL", "https://api.twitterapi.io")
 TIBO_RADAR_HANDLE = os.getenv("TIBO_RADAR_HANDLE", "thsottiaux").lstrip("@")
@@ -71,6 +72,17 @@ TIBO_RADAR_WEBSOCKET_URL = os.getenv(
 )
 TIBO_RADAR_RULE_TAG = os.getenv("TIBO_RADAR_RULE_TAG", "qq-bot-tibo-radar")
 TIBO_RADAR_RULE_INTERVAL_SECONDS = int(os.getenv("TIBO_RADAR_RULE_INTERVAL_SECONDS", "5"))
+TIBO_RADAR_APIFY_API_TOKEN = os.getenv("TIBO_RADAR_APIFY_API_TOKEN", "")
+TIBO_RADAR_APIFY_API_BASE_URL = os.getenv(
+    "TIBO_RADAR_APIFY_API_BASE_URL", "https://api.apify.com"
+)
+TIBO_RADAR_APIFY_ACTOR_ID = os.getenv(
+    "TIBO_RADAR_APIFY_ACTOR_ID", "dami_studio~tweet-scraper"
+)
+TIBO_RADAR_APIFY_MAX_ITEMS = int(os.getenv("TIBO_RADAR_APIFY_MAX_ITEMS", "4"))
+TIBO_RADAR_APIFY_RUN_TIMEOUT_SECONDS = int(
+    os.getenv("TIBO_RADAR_APIFY_RUN_TIMEOUT_SECONDS", "180")
+)
 
 # Flask 服务配置
 SERVER_HOST = '0.0.0.0'

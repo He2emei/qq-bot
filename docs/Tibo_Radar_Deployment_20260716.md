@@ -1,14 +1,15 @@
 # Tibo Radar 部署说明
 
-Tibo Radar 是独立于 AI 早报的轻量实时监控任务。它通过 TwitterAPI.io 获取 `@thsottiaux` 新动态，排除原生转推、保留原创帖、引用帖和回复，并只发送到 QQ 群 `1105591264`。
+Tibo Radar 是独立于 AI 早报的轻量监控任务。它支持 TwitterAPI.io 和 Apify 两种 provider，获取 `@thsottiaux` 新动态，排除原生转推、保留原创帖、引用帖和回复，并只发送到 QQ 群 `1105591264`。
 
-主发现使用 `tweet_filter` 规则和 WebSocket 实时流；`advanced_search` 每 15 分钟执行一次，并带 5 分钟重叠窗口补漏。在实时规则和 API key 完成端到端验证前，不应把代码部署本身标记为功能验收完成。
+`twitterapi` 模式使用 `tweet_filter` WebSocket 实时流，并用 `advanced_search` 补漏。`apify` 模式通过 Store Actor 定时读取最近数条时间线，属于免费额度内的低频抓取方案，不启动 TwitterAPI.io WebSocket。
 
 ## 配置
 
 API key 只写入 tai261 的 `/root/tai/qq-bot/.env`：
 
 ```dotenv
+TIBO_RADAR_PROVIDER=twitterapi
 TIBO_RADAR_API_KEY=
 TIBO_RADAR_API_BASE_URL=https://api.twitterapi.io
 TIBO_RADAR_HANDLE=thsottiaux
@@ -20,16 +21,25 @@ TIBO_RADAR_STREAM_ENABLED=true
 TIBO_RADAR_WEBSOCKET_URL=wss://ws.twitterapi.io/twitter/tweet/websocket
 TIBO_RADAR_RULE_TAG=qq-bot-tibo-radar
 TIBO_RADAR_RULE_INTERVAL_SECONDS=5
+
+# 切换 Apify 时改为 TIBO_RADAR_PROVIDER=apify，并配置：
+TIBO_RADAR_APIFY_API_TOKEN=
+TIBO_RADAR_APIFY_API_BASE_URL=https://api.apify.com
+TIBO_RADAR_APIFY_ACTOR_ID=dami_studio~tweet-scraper
+TIBO_RADAR_APIFY_MAX_ITEMS=4
+TIBO_RADAR_APIFY_RUN_TIMEOUT_SECONDS=180
 ```
 
-没有 `TIBO_RADAR_API_KEY` 时调度器安全禁用，不进行网络请求或 QQ 发送。首次启用默认只建立水位，不补发最近 24 小时的旧帖；之后按 tweet ID 和群号去重。实时事件会先连同 `received_at` 落入状态文件，QQ 发送成功后才移出待投递队列；发送失败不丢失，下次轮询会先重试。日志记录每页 API 返回帖数和供应商提供的 credits 字段，便于 PoC 期间估算成本。
+所选 provider 没有对应凭据时调度器安全禁用，不进行网络请求或 QQ 发送。首次启用默认只建立水位，不补发旧帖；之后按 tweet ID 和群号去重。两个 provider 共享同一状态文件，因此切换不会重复推送已经完成的帖子。发送失败不丢失，下次轮询会先重试。
+
+Apify 默认每 15 分钟最多取 4 条。按 Actor 当前公开价 `$0.30/1000 tweets`，理论结果费约 `$3.46/30天`，低于 Apify Free 每月 `$5` 额度；上线前仍需通过 Apify Console 核对实际 Store 用量和额外运行费用。免费账户不应绑定可产生超额账单的付费方式。
 
 ## 验证
 
 先运行不发送 QQ 的测试：
 
 ```bash
-venv/bin/python -m unittest tests.unit.test_tibo_radar_service tests.unit.test_tibo_radar_factory tests.unit.test_tibo_radar_stream -v
+venv/bin/python -m unittest tests.unit.test_tibo_radar_service tests.unit.test_tibo_radar_factory tests.unit.test_tibo_radar_stream tests.unit.test_apify_tibo_source -v
 ```
 
 启用 key 并重启后检查：
