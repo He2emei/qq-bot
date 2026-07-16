@@ -66,19 +66,25 @@ class TwitterApiIoSourceTest(unittest.TestCase):
         self.assertIn("-filter:nativeretweets", kwargs["params"]["query"])
         self.assertNotIn("secret", str(kwargs["params"]))
 
-    def test_fetch_since_follows_all_result_pages(self):
+    def test_fetch_since_splits_dense_time_windows_without_cursor_pagination(self):
         session = Mock()
         session.get.side_effect = [
             FakeResponse(
                 {
-                    "tweets": [{"id": "201", "text": "one", "createdAt": "2026-07-16T01:01:00Z"}],
+                    "tweets": [],
                     "has_next_page": True,
                     "next_cursor": "next-page",
                 }
             ),
             FakeResponse(
                 {
-                    "tweets": [{"id": "202", "text": "two", "createdAt": "2026-07-16T01:02:00Z"}],
+                    "tweets": [{"id": "201", "text": "one", "createdAt": "2026-07-16T01:01:00Z"}],
+                    "has_next_page": False,
+                }
+            ),
+            FakeResponse(
+                {
+                    "tweets": [{"id": "202", "text": "two", "createdAt": "2026-07-16T01:04:00Z"}],
                     "has_next_page": False,
                 }
             ),
@@ -91,19 +97,20 @@ class TwitterApiIoSourceTest(unittest.TestCase):
         )
 
         self.assertEqual([item.post_id for item in result], ["201", "202"])
-        self.assertEqual(session.get.call_args_list[1].kwargs["params"]["cursor"], "next-page")
+        self.assertEqual(session.get.call_count, 3)
+        self.assertNotIn("cursor", session.get.call_args_list[1].kwargs["params"])
 
-    def test_fetch_since_fails_instead_of_advancing_after_page_safety_limit(self):
+    def test_fetch_since_fails_if_a_single_second_is_still_dense(self):
         session = Mock()
         session.get.return_value = FakeResponse(
             {"tweets": [], "has_next_page": True, "next_cursor": "same-cursor"}
         )
         source = TwitterApiIoSource("secret", "thsottiaux", session=session)
 
-        with self.assertRaisesRegex(Exception, "分页游标"):
+        with self.assertRaisesRegex(Exception, "单秒时间窗口"):
             source.fetch_since(
                 datetime(2026, 7, 16, 1, 0, tzinfo=timezone.utc),
-                datetime(2026, 7, 16, 1, 5, tzinfo=timezone.utc),
+                datetime(2026, 7, 16, 1, 0, 1, tzinfo=timezone.utc),
             )
 
 

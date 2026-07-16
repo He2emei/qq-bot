@@ -67,19 +67,24 @@ class TwitterApiIoSource:
         self.timeout = timeout
 
     def fetch_since(self, since: datetime, until: datetime) -> List[TiboPost]:
-        query = (
-            f"from:{self.handle} -filter:nativeretweets "
-            f"since_time:{int(since.timestamp())} until_time:{int(until.timestamp())}"
-        )
         posts = []
-        params = {"query": query, "queryType": "Latest"}
-        seen_cursors = set()
-        for page_number in range(1, 21):
+        windows = [(since, until)]
+        request_number = 0
+        while windows:
+            window_since, window_until = windows.pop(0)
+            request_number += 1
+            if request_number > 64:
+                raise TiboSourceError("TwitterAPI.io 时间窗口拆分超过安全上限")
+            query = (
+                f"from:{self.handle} -filter:nativeretweets "
+                f"since_time:{int(window_since.timestamp())} "
+                f"until_time:{int(window_until.timestamp())}"
+            )
             try:
                 response = self.session.get(
                     f"{self.base_url}/twitter/tweet/advanced_search",
                     headers={"X-API-Key": self.api_key},
-                    params=params,
+                    params={"query": query, "queryType": "Latest"},
                     timeout=self.timeout,
                 )
                 response.raise_for_status()
@@ -96,10 +101,22 @@ class TwitterApiIoSource:
                 or "unknown"
             )
             print(
-                f"Tibo Radar advanced_search page={page_number} "
+                f"Tibo Radar advanced_search request={request_number} "
                 f"tweets={len(raw_posts)} credits={credits}",
                 flush=True,
             )
+
+            if payload.get("has_next_page"):
+                span = window_until - window_since
+                if span <= timedelta(seconds=1):
+                    raise TiboSourceError("TwitterAPI.io 单秒时间窗口结果仍超过上限")
+                midpoint = window_since + span / 2
+                windows[0:0] = [
+                    (window_since, midpoint),
+                    (midpoint, window_until),
+                ]
+                continue
+
             for item in raw_posts:
                 if not isinstance(item, dict):
                     continue
@@ -117,16 +134,8 @@ class TwitterApiIoSource:
                     )
                 )
 
-            cursor = payload.get("next_cursor") if isinstance(payload, dict) else None
-            if not payload.get("has_next_page") or not cursor:
-                break
-            if cursor in seen_cursors:
-                raise TiboSourceError("TwitterAPI.io 返回重复分页游标")
-            seen_cursors.add(cursor)
-            params = dict(params, cursor=cursor)
-        else:
-            raise TiboSourceError("TwitterAPI.io 分页超过安全上限")
-        return posts
+        deduplicated = {post.post_id: post for post in posts}
+        return sorted(deduplicated.values(), key=lambda item: (item.created_at, item.post_id))
 
 
 class TiboRadarStateStore:
