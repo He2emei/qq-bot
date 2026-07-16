@@ -1,0 +1,9 @@
+[Unit]
+Description=Stop Tibo Radar Apify shadow validation after 48 hours
+
+[Timer]
+OnActiveSec=48h
+Unit=tibo-radar-apify-shadow-stop.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,6 @@
+[Unit]
+Description=Stop the bounded Tibo Radar Apify shadow validation
+
+[Service]
+Type=oneshot
+ExecStart=/bin/systemctl disable --now tibo-radar-apify-shadow.timer

@@ -36,11 +36,14 @@ def main():
         ),
     )
     result = run_shadow_check(source, args.state_path, args.log_path)
-    print(
-        f"Tibo Radar shadow check succeeded: observed={len(result['observed_ids'])} "
-        f"ids={result['observed_ids']}",
-        flush=True,
-    )
+    if result["status"] == "complete":
+        print("Tibo Radar shadow validation has reached its 48-hour limit", flush=True)
+    else:
+        print(
+            f"Tibo Radar shadow check succeeded: observed={len(result['observed_ids'])} "
+            f"ids={result['observed_ids']}",
+            flush=True,
+        )
 
 
 if __name__ == "__main__":

@@ -7,8 +7,9 @@ from services.tibo_radar_service import TiboSourceError, format_tibo_post
 
 
 class FakeResponse:
-    def __init__(self, payload):
+    def __init__(self, payload, headers=None):
         self.payload = payload
+        self.headers = headers or {}
 
     def raise_for_status(self):
         return None
@@ -181,6 +182,37 @@ class ApifyTiboSourceTest(unittest.TestCase):
         )
 
         self.assertEqual(posts, [])
+
+    def test_maximedupre_records_actual_actor_run_cost_when_header_is_available(self):
+        session = Mock()
+        session.post.return_value = FakeResponse(
+            [], headers={"X-Apify-Actor-Run-Id": "run-123"}
+        )
+        session.get.return_value = FakeResponse(
+            {
+                "data": {
+                    "status": "SUCCEEDED",
+                    "usageTotalUsd": 0,
+                    "chargedEventCounts": {},
+                }
+            }
+        )
+        source = ApifyTiboSource(
+            "secret",
+            "thsottiaux",
+            actor_id=MAXIMEDUPRE_ACTOR_ID,
+            session=session,
+        )
+
+        source.fetch_since_id(
+            "2077632589498913087",
+            datetime(2026, 7, 16, 3, tzinfo=timezone.utc),
+            datetime(2026, 7, 16, 4, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual(source.last_run_metadata["run_id"], "run-123")
+        self.assertEqual(source.last_run_metadata["usage_total_usd"], 0)
+        self.assertEqual(source.last_run_metadata["status"], "SUCCEEDED")
 
 
 if __name__ == "__main__":

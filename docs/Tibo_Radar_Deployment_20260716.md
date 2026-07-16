@@ -40,10 +40,12 @@ Apify Free 模式默认每 8 小时最多取 25 条，遵守该 Actor 对免费�
 `maximedupre~twitter-scraper` 支持 `sinceId`，空增量实测不产生结果费。仓库提供独立的只读影子任务：
 
 - `scripts/tibo_radar_apify_shadow.py` 每次只运行一轮；
-- `deploy/tibo-radar-apify-shadow.timer` 每 5 分钟触发；
+- `deploy/tibo-radar-apify-shadow.timer` 按墙钟每 5 分钟触发；
+- `deploy/tibo-radar-apify-shadow-stop.timer` 在 48 小时后自动停用抓取 timer，脚本自身也有 48 小时硬截止；
 - 状态写入 `data/tibo_radar_apify_shadow_state.json`；
 - 对账日志写入 `data/tibo_radar_apify_shadow_observations.jsonl`；
-- 日志只保存帖子 ID、时间、回复标记和 URL，不保存正文；
+- 日志保存帖子 ID、时间、原创/回复/引用/转推分类、URL、Actor 运行耗时与可用的实际费用，不保存正文；
+- Actor 错误也写入 JSONL，但不会推进增量水位；
 - 不导入 QQ sender，不会向群发送消息。
 
 密钥单独放在权限为 `0600` 的 `/root/tai/qq-bot/.env.tibo-shadow`：
@@ -56,7 +58,7 @@ TIBO_RADAR_APIFY_MAX_ITEMS=10
 TIBO_RADAR_APIFY_RUN_TIMEOUT_SECONDS=180
 ```
 
-启用前复制 service/timer 到 `/etc/systemd/system/`，执行 daemon-reload 后启动 timer。影子验证计划运行 48 小时，结束时禁用 timer，再根据 JSONL 与现有信源对账；切换正式 Radar 是另一个独立步骤。
+启用前复制两组 service/timer 到 `/etc/systemd/system/`，执行 daemon-reload 后同时启动抓取 timer 和 stop timer。48 小时后任务自动停止，再根据 JSONL 与现有信源对账；切换正式 Radar 是另一个独立步骤。
 
 ## 验证
 

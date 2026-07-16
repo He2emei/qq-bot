@@ -29,6 +29,8 @@ class TiboPost:
     created_at: datetime
     url: str
     is_reply: bool = False
+    is_quote: bool = False
+    is_repost: bool = False
     source_label: str = DEFAULT_TIBO_SOURCE_LABEL
 
 

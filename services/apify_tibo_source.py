@@ -1,3 +1,4 @@
+import time
 from typing import List
 
 import requests
@@ -36,6 +37,7 @@ class ApifyTiboSource:
             self.max_items = requested_max_items
         self.run_timeout_seconds = int(run_timeout_seconds)
         self.session = session or requests.Session()
+        self.last_run_metadata = {}
 
     def fetch_since(self, since, until) -> List[TiboPost]:
         return self.fetch_since_id(None, since, until)
@@ -66,6 +68,7 @@ class ApifyTiboSource:
         return sorted(deduplicated.values(), key=lambda post: (post.created_at, post.post_id))
 
     def _run_actor(self, since_id=None):
+        started_at = time.monotonic()
         try:
             response = self.session.post(
                 f"{self.base_url}/v2/acts/{self.actor_id}/run-sync-get-dataset-items",
@@ -80,13 +83,52 @@ class ApifyTiboSource:
             response.raise_for_status()
             payload = response.json()
         except (requests.RequestException, RuntimeError, ValueError) as exc:
+            self.last_run_metadata = {
+                "status": "FAILED",
+                "duration_seconds": round(time.monotonic() - started_at, 3),
+                "error_type": type(exc).__name__,
+            }
             raise TiboSourceError(f"Apify Actor 请求失败: {type(exc).__name__}") from exc
+
+        self.last_run_metadata = {
+            "status": "SUCCEEDED",
+            "duration_seconds": round(time.monotonic() - started_at, 3),
+        }
+        headers = getattr(response, "headers", {}) or {}
+        run_id = headers.get("X-Apify-Actor-Run-Id") or headers.get(
+            "x-apify-actor-run-id"
+        )
+        if run_id:
+            self.last_run_metadata["run_id"] = str(run_id)
+            self._load_run_metadata(str(run_id))
 
         if not isinstance(payload, list):
             raise TiboSourceError("Apify Actor 返回格式不是列表")
         if not payload and self.actor_id != MAXIMEDUPRE_ACTOR_ID:
             raise TiboSourceError("Apify Actor 未返回时间线数据")
         return payload
+
+    def _load_run_metadata(self, run_id):
+        try:
+            response = self.session.get(
+                f"{self.base_url}/v2/actor-runs/{run_id}",
+                headers={"Authorization": f"Bearer {self.api_token}"},
+                timeout=(5, 15),
+            )
+            response.raise_for_status()
+            payload = response.json()
+        except (requests.RequestException, RuntimeError, ValueError):
+            return
+        data = payload.get("data", {}) if isinstance(payload, dict) else {}
+        if not isinstance(data, dict):
+            return
+        self.last_run_metadata.update(
+            {
+                "status": data.get("status") or self.last_run_metadata["status"],
+                "usage_total_usd": data.get("usageTotalUsd"),
+                "charged_event_counts": data.get("chargedEventCounts"),
+            }
+        )
 
     def _actor_input(self, since_id=None):
         if self.actor_id == SEEMUAPPS_FREE_ACTOR_ID:
@@ -172,5 +214,7 @@ class ApifyTiboSource:
                 or item.get("in_reply_to_status_id_str")
                 or item.get("replyToPostId")
             ),
+            is_quote=bool(item.get("quotedPostId") or item.get("quotedPostText")),
+            is_repost=bool(item.get("isRetweet") or item.get("is_repost")),
             source_label="Apify Store Actor（非 X 官方 API）",
         )
