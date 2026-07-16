@@ -14,9 +14,10 @@ from services.tibo_radar_service import (
 
 
 class FakeResponse:
-    def __init__(self, payload, status_code=200):
+    def __init__(self, payload, status_code=200, headers=None):
         self.payload = payload
         self.status_code = status_code
+        self.headers = headers or {}
 
     def raise_for_status(self):
         if self.status_code >= 400:
@@ -52,7 +53,9 @@ class TwitterApiIoSourceTest(unittest.TestCase):
                 ]
             }
         )
-        source = TwitterApiIoSource("secret", "thsottiaux", session=session)
+        source = TwitterApiIoSource(
+            "secret", "thsottiaux", session=session, sleeper=Mock()
+        )
 
         result = source.fetch_since(
             datetime(2026, 7, 16, 1, 0, tzinfo=timezone.utc),
@@ -89,7 +92,9 @@ class TwitterApiIoSourceTest(unittest.TestCase):
                 }
             ),
         ]
-        source = TwitterApiIoSource("secret", "thsottiaux", session=session)
+        source = TwitterApiIoSource(
+            "secret", "thsottiaux", session=session, sleeper=Mock()
+        )
 
         result = source.fetch_since(
             datetime(2026, 7, 16, 1, 0, tzinfo=timezone.utc),
@@ -112,6 +117,25 @@ class TwitterApiIoSourceTest(unittest.TestCase):
                 datetime(2026, 7, 16, 1, 0, tzinfo=timezone.utc),
                 datetime(2026, 7, 16, 1, 0, 1, tzinfo=timezone.utc),
             )
+
+    def test_fetch_since_retries_rate_limit_using_retry_after(self):
+        session = Mock()
+        session.get.side_effect = [
+            FakeResponse({}, status_code=429, headers={"Retry-After": "7"}),
+            FakeResponse({"tweets": [], "has_next_page": False}),
+        ]
+        sleeper = Mock()
+        source = TwitterApiIoSource(
+            "secret", "thsottiaux", session=session, sleeper=sleeper
+        )
+
+        result = source.fetch_since(
+            datetime(2026, 7, 16, 1, 0, tzinfo=timezone.utc),
+            datetime(2026, 7, 16, 1, 5, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual(result, [])
+        sleeper.assert_called_once_with(7)
 
 
 class TiboRadarTest(unittest.TestCase):

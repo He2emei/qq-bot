@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
@@ -59,12 +60,16 @@ class TwitterApiIoSource:
         base_url: str = "https://api.twitterapi.io",
         session=None,
         timeout=(5, 15),
+        sleeper=None,
+        request_interval_seconds=6,
     ):
         self.api_key = api_key
         self.handle = handle.lstrip("@")
         self.base_url = base_url.rstrip("/")
         self.session = session or requests.Session()
         self.timeout = timeout
+        self.sleeper = sleeper or time.sleep
+        self.request_interval_seconds = request_interval_seconds
 
     def fetch_since(self, since: datetime, until: datetime) -> List[TiboPost]:
         posts = []
@@ -75,22 +80,34 @@ class TwitterApiIoSource:
             request_number += 1
             if request_number > 64:
                 raise TiboSourceError("TwitterAPI.io 时间窗口拆分超过安全上限")
+            if request_number > 1:
+                self.sleeper(self.request_interval_seconds)
             query = (
                 f"from:{self.handle} -filter:nativeretweets "
                 f"since_time:{int(window_since.timestamp())} "
                 f"until_time:{int(window_until.timestamp())}"
             )
-            try:
-                response = self.session.get(
-                    f"{self.base_url}/twitter/tweet/advanced_search",
-                    headers={"X-API-Key": self.api_key},
-                    params={"query": query, "queryType": "Latest"},
-                    timeout=self.timeout,
-                )
-                response.raise_for_status()
-                payload = response.json()
-            except (requests.RequestException, RuntimeError, ValueError) as exc:
-                raise TiboSourceError(f"TwitterAPI.io 请求失败: {type(exc).__name__}") from exc
+            for attempt in range(3):
+                try:
+                    response = self.session.get(
+                        f"{self.base_url}/twitter/tweet/advanced_search",
+                        headers={"X-API-Key": self.api_key},
+                        params={"query": query, "queryType": "Latest"},
+                        timeout=self.timeout,
+                    )
+                    if response.status_code == 429 and attempt < 2:
+                        retry_after = getattr(response, "headers", {}).get("Retry-After")
+                        delay = int(retry_after) if str(retry_after).isdigit() else 15 * (attempt + 1)
+                        print(f"Tibo Radar advanced_search 受限，{delay} 秒后重试", flush=True)
+                        self.sleeper(delay)
+                        continue
+                    response.raise_for_status()
+                    payload = response.json()
+                    break
+                except (requests.RequestException, RuntimeError, ValueError) as exc:
+                    raise TiboSourceError(
+                        f"TwitterAPI.io 请求失败: {type(exc).__name__}"
+                    ) from exc
 
             raw_posts = payload.get("tweets", []) if isinstance(payload, dict) else []
             response_headers = getattr(response, "headers", {})
