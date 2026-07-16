@@ -74,7 +74,14 @@ class TwitterApiIoSourceTest(unittest.TestCase):
         session.get.side_effect = [
             FakeResponse(
                 {
-                    "tweets": [],
+                    "tweets": [
+                        {
+                            "id": str(index),
+                            "text": "dense",
+                            "createdAt": "2026-07-16T01:02:00Z",
+                        }
+                        for index in range(20)
+                    ],
                     "has_next_page": True,
                     "next_cursor": "next-page",
                 }
@@ -108,7 +115,18 @@ class TwitterApiIoSourceTest(unittest.TestCase):
     def test_fetch_since_fails_if_a_single_second_is_still_dense(self):
         session = Mock()
         session.get.return_value = FakeResponse(
-            {"tweets": [], "has_next_page": True, "next_cursor": "same-cursor"}
+            {
+                "tweets": [
+                    {
+                        "id": str(index),
+                        "text": "dense",
+                        "createdAt": "2026-07-16T01:00:00Z",
+                    }
+                    for index in range(20)
+                ],
+                "has_next_page": True,
+                "next_cursor": "same-cursor",
+            }
         )
         source = TwitterApiIoSource("secret", "thsottiaux", session=session)
 
@@ -136,6 +154,21 @@ class TwitterApiIoSourceTest(unittest.TestCase):
 
         self.assertEqual(result, [])
         sleeper.assert_called_once_with(7)
+
+    def test_fetch_since_ignores_has_next_when_result_is_not_full(self):
+        session = Mock()
+        session.get.return_value = FakeResponse(
+            {"tweets": [], "has_next_page": True, "next_cursor": "do-not-use"}
+        )
+        source = TwitterApiIoSource("secret", "thsottiaux", session=session)
+
+        result = source.fetch_since(
+            datetime(2026, 7, 16, 1, 0, tzinfo=timezone.utc),
+            datetime(2026, 7, 16, 1, 5, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual(result, [])
+        self.assertEqual(session.get.call_count, 1)
 
 
 class TiboRadarTest(unittest.TestCase):

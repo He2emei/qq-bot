@@ -123,7 +123,7 @@ class TwitterApiIoSource:
                 flush=True,
             )
 
-            if payload.get("has_next_page"):
+            if payload.get("has_next_page") and len(raw_posts) >= 20:
                 span = window_until - window_since
                 if span <= timedelta(seconds=1):
                     raise TiboSourceError("TwitterAPI.io 单秒时间窗口结果仍超过上限")
